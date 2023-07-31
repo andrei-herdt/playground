@@ -9,8 +9,9 @@ ARG BLD_URDFDOM_HEADERS_VERSION=00c1c9c231e46b2300d04073ad696521758fa45c
 ARG BLD_URDFDOM_URL=https://github.com/ros/urdfdom.git
 ARG BLD_URDFDOM_VERSION=0da4b20675cdbe14b532d484a1c17df85b4e1584
 ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
-ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2
+ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
 ARG BLD_MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-py39_4.9.2-Linux-x86_64.sh
+ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
 
 FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu20.04
 
@@ -20,6 +21,7 @@ ARG BLD_CMAKE_URL
 ARG BLD_CMAKE_VERSION
 ARG BLD_EIGEN_URL
 ARG BLD_EIGEN_VERSION
+ARG BLD_EIGENPY_URL
 ARG BLD_URDFDOM_HEADERS_URL
 ARG BLD_URDFDOM_HEADERS_VERSION
 ARG BLD_URDFDOM_URL
@@ -61,11 +63,11 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
 RUN . ~/.bashrc && conda activate base && conda install -y numpy scipy pybind11
 
 # Install boost
-RUN . ~/.bashrc && conda activate base && cd /root && wget -q -c ${BLD_BOOST_URL} -O /root/boost.tar.bz2 \
+RUN cd /root && wget -q -c ${BLD_BOOST_URL} -O /root/boost.tar.bz2 \
         && mkdir boost && cd /root/boost && tar -xf /root/boost.tar.bz2 --strip-components=1 && \
      cd /root/boost && \
-          ./bootstrap.sh --with-python-version=3.9 --with-python-root=/opt/conda  --prefix=/opt/openrobots/ --with-python=/opt/conda/bin/python3 --show-libraries && \
-           ./b2 -j8 install toolset=clang cxxflags="-stdlib=libc++ -flto=thin -std=c++20" linkflags="-stdlib=libc++ -flto=thin -std=c++20"  --prefix=/opt/openrobots/ ; cd /root; rm -rf /root/boost*
+          ./bootstrap.sh && \
+           ./b2 -j8 install ; cd /root; rm -rf /root/boost*
 
 # Eigen3
 RUN cd $RH_INSTALLDIR \
@@ -74,7 +76,7 @@ RUN cd $RH_INSTALLDIR \
         && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release -DEIGEN_TEST_CXX11=ON .. \
         && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
-# Pinocchio
+# Pinocchioz
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
 #     && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
@@ -89,9 +91,15 @@ RUN cd $RH_INSTALLDIR \
 #     && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
 #     && cd $RH_INSTALLDIR && rm -rf urdfdom
 
-# RUN cd $INSTALLDIR \
-#     && git clone ${BLD_PINOCCHIO_URL} pinocchio \
-#     && cd pinocchio && git checkout ${BLD_PINOCCHIO_VERSION} && git submodule update --init --recursive \
-#     && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DBUILD_WITH_URDF_SUPPORT=OFF .. -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_INTERFACE=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots \
-#     && make -j8 && make install
+RUN cd $RH_INSTALLDIR \
+        && git clone ${BLD_EIGENPY_URL} eigenpy \
+        && cd eigenpy && git checkout ${BLD_EIGENPY_VERSION} && git submodule update --init --recursive \
+        && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
+        && cd $RH_INSTALLDIR # && rm -rf $RH_INSTALLDIR/eigenpy
 
+
+ RUN cd $INSTALLDIR \
+     && git clone ${BLD_PINOCCHIO_URL} pinocchio \
+     && cd pinocchio && git checkout ${BLD_PINOCCHIO_VERSION} && git submodule update --init --recursive \
+     && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DBUILD_WITH_URDF_SUPPORT=OFF .. -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_INTERFACE=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots \
+     && make -j8 && make install
