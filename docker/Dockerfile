@@ -52,13 +52,14 @@ ENV CXX="g++"
 RUN cd /root && wget --quiet ${BLD_CMAKE_URL} && tar -xf cmake-${BLD_CMAKE_VERSION}.tar.gz \
    && cd /root/cmake-${BLD_CMAKE_VERSION} && ./bootstrap && make -j5 && make -j4 install && cd /root && rm -rf /root/cmake-${BLD_CMAKE_VERSION}
 
-# # Anaconda 3
+# Anaconda 3
 RUN wget --quiet ${BLD_MINICONDA_URL} -O ~/anaconda.sh && \
     /bin/bash ~/anaconda.sh -b -p /opt/conda && \
     rm ~/anaconda.sh && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
+
 #
 ENV PATH="/opt/conda/bin:$PATH"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
@@ -78,10 +79,10 @@ RUN cd $RH_INSTALLDIR \
         && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release -DEIGEN_TEST_CXX11=ON .. \
         && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
-# Pinocchioz
-RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio 
-RUN . ~/.bashrc && conda activate base && conda install -c conda-forge tsid 
-RUN pip install meshcat
+# Pinocchio
+RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
+RUN pip install meshcat mujoco matplotlib mediapy
+
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
 #     && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
