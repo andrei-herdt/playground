@@ -79,7 +79,8 @@ RUN cd $RH_INSTALLDIR \
         && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
 # Pinocchioz
-RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio
+RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio 
+RUN . ~/.bashrc && conda activate base && conda install -c conda-forge tsid 
 RUN pip install meshcat
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
