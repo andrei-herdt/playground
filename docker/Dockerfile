@@ -42,6 +42,7 @@ RUN apt-get update \
     wget \
     build-essential \
     libssl-dev \
+    libglfw3 \
     apt-transport-https ca-certificates \
         --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
 
