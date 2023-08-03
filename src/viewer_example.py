@@ -28,7 +28,6 @@ for offset in height_offsets:
 idx = np.argmin(np.abs(vertical_forces))
 best_offset = height_offsets[idx]
 
-
 mujoco.mj_resetDataKeyframe(model, data, 1)
 mujoco.mj_forward(model, data)
 data.qacc = 0
