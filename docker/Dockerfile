@@ -61,7 +61,7 @@ RUN wget --quiet ${BLD_MINICONDA_URL} -O ~/anaconda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
-#
+# scientific python packages 
 ENV PATH="/opt/conda/bin:$PATH"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
 RUN . ~/.bashrc && conda activate base && conda install -y numpy scipy pybind11
@@ -83,6 +83,18 @@ RUN cd $RH_INSTALLDIR \
 # Pinocchio
 RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
 RUN pip install meshcat mujoco matplotlib mediapy
+
+# tzdata non-interactive
+RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
+  && apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
+  && dpkg-reconfigure --frontend noninteractive tzdata
+
+# Jupyter
+RUN apt-get update \
+    && apt-get install \
+    jupyter \
+        --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
