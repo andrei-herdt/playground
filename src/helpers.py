@@ -1,3 +1,19 @@
-import numpy as np
+from dataclasses import dataclass
 
-np.set_printoptions(precision=3, suppress=True, linewidth=100)
+
+@dataclass
+class Perturbations:
+    values = [0.1]
+    times = [2]
+    point = list(zip(times, values))
+    npoint = 0
+
+
+def get_perturbation(pert, t):
+    if pert.npoint >= len(pert.values) or t < pert.times[pert.npoint]:
+        return 0
+
+    np = pert.npoint
+    pert.npoint += 1
+
+    return pert.values[np]

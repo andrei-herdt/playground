@@ -2,12 +2,12 @@ import time
 
 import mujoco
 import mujoco.viewer
-
-import helpers
-import matplotlib.pyplot as plt
 import numpy as np
-
 import scipy
+
+from helpers import Perturbations, get_perturbation
+
+np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 model = mujoco.MjModel.from_xml_path(
     '/workdir/mujoco/model/humanoid/humanoid.xml')
@@ -35,15 +35,12 @@ data.qpos[2] += best_offset
 qpos0 = data.qpos.copy()  # Save the position setpoint.
 mujoco.mj_inverse(model, data)
 qfrc0 = data.qfrc_inverse.copy()
-print('desired forces: \n', qfrc0)
 
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
-print('control setpoint: \n', ctrl0)
 
 data.ctrl = ctrl0
 mujoco.mj_forward(model, data)
-print('actuator forces: \n', data.qfrc_actuator)
 
 nu = model.nu  # Alias for the number of actuators.
 R = np.eye(nu)
@@ -75,14 +72,14 @@ abdomen_dofs = [
     model.joint(name).dofadr[0]
     for name in joint_names
     if 'abdomen' in name
-    and not 'z' in name
+    and 'z' not in name
 ]
 left_leg_dofs = [
     model.joint(name).dofadr[0]
     for name in joint_names
     if 'left' in name
     and ('hip' in name or 'knee' in name or 'ankle' in name)
-    and not 'z' in name
+    and 'z' not in name
 ]
 balance_dofs = abdomen_dofs + left_leg_dofs
 other_dofs = np.setdiff1d(body_dofs, balance_dofs)
@@ -127,14 +124,16 @@ K = np.linalg.inv(R + B.T @ P @ B) @ B.T @ P @ A
 # Allocate position difference dq.
 dq = np.zeros(model.nv)
 
-input("sdf")
 
+pert = Perturbations()
+
+sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
     start = time.time()
     while viewer.is_running() and time.time() - start < 30:
         step_start = time.time()
-#
+
         # Get state difference dx.
         mujoco.mj_differentiatePos(model, dq, 1, qpos0, data.qpos)
         dx = np.hstack((dq, data.qvel)).T
@@ -142,12 +141,13 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # LQR control law.
         data.ctrl = ctrl0 - K @ dx
 
+        data.qvel[0] += get_perturbation(pert, step_start-sim_start)
+
         mujoco.mj_step(model, data)
 
-        # Pick up changes to the physics state, apply perturbations, update options from GUI.
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.
-        time_until_next_step = model.opt.timestep - (time.time() - step_start)
-        if time_until_next_step > 0:
-            time.sleep(time_until_next_step)
+        dt = model.opt.timestep - (time.time() - step_start)
+        if dt > 0:
+            time.sleep(dt)
