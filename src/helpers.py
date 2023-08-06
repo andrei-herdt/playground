@@ -1,19 +1,18 @@
 from dataclasses import dataclass
 
+from typing import List, Tuple
+
 
 @dataclass
 class Perturbations:
-    values = [0.1]
-    times = [2]
-    point = list(zip(times, values))
-    npoint = 0
+    data: List[Tuple[int, int]]
+    npoint: int
 
 
 def get_perturbation(pert, t):
-    if pert.npoint >= len(pert.values) or t < pert.times[pert.npoint]:
+    if pert.npoint >= len(pert.data) or t < pert.data[pert.npoint][0]:
         return 0
 
-    np = pert.npoint
     pert.npoint += 1
 
-    return pert.values[np]
+    return pert.data[pert.npoint-1][1]

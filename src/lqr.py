@@ -125,7 +125,7 @@ K = np.linalg.inv(R + B.T @ P @ B) @ B.T @ P @ A
 dq = np.zeros(model.nv)
 
 
-pert = Perturbations()
+pert = Perturbations([(2, 0.05)], 0)
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
