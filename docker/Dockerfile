@@ -90,11 +90,6 @@ RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata
 
-# Jupyter
-RUN apt-get update \
-    && apt-get install \
-    jupyter \
-        --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
