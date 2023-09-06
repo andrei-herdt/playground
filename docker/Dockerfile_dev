@@ -43,5 +43,5 @@ RUN mkdir ~/.config && cd ~/.config && git clone https://github.com/andrei-herdt
 RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
 
 # Notebook
-RUN pip3 install notebook
+RUN pip3 install notebook pudb
 
