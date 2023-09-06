@@ -127,6 +127,10 @@ dq = np.zeros(model.nv)
 
 pert = Perturbations([(2, 0.05), (5, 0.1)], 0)
 
+# Get the mass matrix
+M = np.zeros((model.nv, model.nv))
+mujoco.mj_fullM(model, M, data.qM)
+
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
