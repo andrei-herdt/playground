@@ -179,10 +179,14 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	-v $XAUTH:$XAUTH \
 	-v ${PWD}/..:/workdir/playground \
 	-v ${PWD}/workdir:/workdir \
+	-v ${PWD}/workdir/.config/nvim:/root/.config/nvim \
+	-v ${PWD}/workdir/.local/share/nvim:/root/.local/share/nvim \
 	${MOUNT_LOG_DIR} \
 	${EXTRA_MOUNTS} \
 	${EXTRA_HOSTS} \
 	${DEVICES} \
 	${DOCKER_EXTRA_FLAGS} \
 	--entrypoint ${ENTRYPOINT} \
-	-e XAUTHORITY=$XAUTH -e DISPLAY=${DISPLAY} ${IMAGE}${DEVIMAGE}:$VERSION
+	-e XAUTHORITY=$XAUTH \
+	-e DISPLAY=${DISPLAY} \
+	${IMAGE}${DEVIMAGE}:$VERSION
