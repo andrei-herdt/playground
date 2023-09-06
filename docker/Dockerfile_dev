@@ -35,10 +35,6 @@ RUN pip3 install pynvim
 ENV DENO_INSTALL="/usr/local"
 RUN curl -fsSL https://deno.land/x/install/install.sh | sh
 
-# neovim-config
-RUN mkdir ~/.config && cd ~/.config && git clone https://github.com/andrei-herdt/neovim-config.git nvim \
-&& nvim --headless "+Lazy! sync" +qa
-
 # Map rg to ag
 RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
 
