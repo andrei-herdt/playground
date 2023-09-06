@@ -177,7 +177,8 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	${NETWORKING} -ti \
 	-v $XSOCK:$XSOCK \
 	-v $XAUTH:$XAUTH \
-	-v ${PWD}/..:/workdir/ \
+	-v ${PWD}/..:/workdir/playground \
+	-v ${PWD}/workdir:/workdir \
 	${MOUNT_LOG_DIR} \
 	${EXTRA_MOUNTS} \
 	${EXTRA_HOSTS} \
