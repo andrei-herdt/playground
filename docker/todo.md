@@ -4,3 +4,4 @@
 ```
 
 - [ ] Add ohmyzsh to dockerfile_dev
+- [ ] MarkdownPreview doesn't work from within docker. Port is not exposed?

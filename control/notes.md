@@ -14,6 +14,7 @@ So far, the control is purely position-based.
 Let's start considering the dynamics.
 We want to be able to compensate for disturbances by generating angular momenta
 We exploit the coupling between the linear and angular momentum.
+
 We create a CoM position task:
 $$
 \ddot c_d = K_p(c_d-c) + K_d(\dot c_d - \dot c)
@@ -87,7 +88,7 @@ The solution of which is:
 $$
 \tau^* = (H_1+H_2)^+(r_1+r_2), 
 $$
-where $H_j = M^{-T}J_j^TW_jJ_jM^{-1}$ and $r_j = (J_jM^{-1}h+\ddot x_{j,d})J_jM^{-1}$
+where $H_j = M^{-T}J_j^TW_jJ_jM^{-1}$ and $r_j = (J_jM^{-1}h+\ddot x_{j,d})W_jJ_jM^{-1}$
 
 ## Contact forces
 
