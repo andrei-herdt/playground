@@ -5,3 +5,4 @@
   - [ ] Build reference vectors
 
 - [ ] Solve same problem using proxqp
+- [ ] Integrate https://github.com/machines-in-motion/mujoco_utils
