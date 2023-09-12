@@ -10,7 +10,7 @@ from helpers import Perturbations, get_perturbation
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/mujoco/model/humanoid/humanoid.xml')
+    '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 data = mujoco.MjData(model)
 
 height_offsets = np.linspace(-0.001, 0.001, 2001)
