@@ -7,11 +7,21 @@ import scipy
 
 from helpers import Perturbations, get_perturbation
 
+# from robot_descriptions.loaders.mujoco import load_robot_description
+# robot_mj = load_robot_description("cassie_description")
+# from robot_descriptions.loaders.pinocchio import load_robot_description
+# robot_pin = load_robot_description("cassie_description")
+
+
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/mujoco/model/humanoid/humanoid.xml')
+    '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 data = mujoco.MjData(model)
+
+modelurdf = mujoco.mj_loadXML('/workdir/cassie_description/urdf/cassie_v4.urdf', '/workdir/cassie_description/meshes/')
+
+__import__('pdb').set_trace()
 
 height_offsets = np.linspace(-0.001, 0.001, 2001)
 vertical_forces = []
