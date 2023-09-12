@@ -41,3 +41,17 @@ RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
 # Notebook
 RUN pip3 install notebook pudb
 
+# Configurations
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install \
+    tmux zsh \
+        --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+	
+RUN sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+
+# Configure tmux
+RUN mkdir -p /root/TMP \
+&& cd /root/TMP && git clone https://github.com/andrei-herdt/dotfiles \
+&& cp /root/TMP/dotfiles/.tmux.conf ~ \
+&& rm -rf /root/TMP
+

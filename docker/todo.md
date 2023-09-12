@@ -6,6 +6,6 @@
 - [ ] Add ohmyzsh to dockerfile_dev
 - [ ] git integration in docker
 - [ ] MarkdownPreview doesn't work from within docker. Port is not exposed?
-- [ ] Search jumps automatically to normal mode, creating havoc
+- [ ] In nvim, search function jumps automatically to normal mode when not found, creating havoc
 - [ ] Download mujoco binaries https://github.com/google-deepmind/mujoco/releases/download/2.3.7/mujoco-2.3.7-linux-x86_64.tar.gz
 - [ ] pip install robot_descriptions

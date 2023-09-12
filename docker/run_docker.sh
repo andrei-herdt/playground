@@ -39,6 +39,7 @@ NAME=''
 NETWORKING=''
 DOCKER_EXTRA_FLAGS_=()
 ENTRYPOINT="/bin/bash"
+DEVIMAGE=_dev
 
 while [ "$1" != "" ]; do
 	case $1 in
