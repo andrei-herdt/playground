@@ -12,3 +12,5 @@
 - [ ] from vim to tmux jump doesn't work
 git config --global core.editor vi
 git config ...
+start tmux automa
+install j
