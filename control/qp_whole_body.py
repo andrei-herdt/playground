@@ -124,40 +124,20 @@ K = np.linalg.inv(R + B.T @ P @ B) @ B.T @ P @ A
 # Allocate position difference dq.
 dq = np.zeros(model.nv)
 
-pert = Perturbations([(2, 0.05), (5, 0.1)], 0)
+pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
-
-# Get the mass matrix and the bias term
-mujoco.mj_fullM(model, M, data.qM)
-M2 = M[6:,6:]
-M2inv = np.linalg.inv(M2)
-h2 = data.qfrc_bias[6:]
-
-J1 = Jc[:,6:]
-J2 = Jfl[:,6:]
-
-H1 = M2inv.T@J1.T@J1@M2inv
-H2 = M2inv.T@J2.T@J2@M2inv
-Hpinv = np.linalg.pinv(H1 + H2)
 
 # Define task acceleration as pd control output
 Kp_c = 1
 Kd_c = 0.1
 x_c_init = data.subtree_com[0]
-ddotx_c_d = lambda p, v : Kp_c * (p - x_c_init) + Kd_c * (v - np.zeros(3))
-
-dx_c = data.subtree_linvel[0]
-r1 = (J1@M2inv@h2+ddotx_c_d(x_c_init, dx_c))@J1@M2inv
-
 id_fl = model.body('foot_left').id
 x_fl_init = data.subtree_com[id_fl]
-dx_fl = data.subtree_linvel[id_fl]
-r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@J2@M2inv
 
-tau_d = Hpinv@(r1 + r2)
-
+x_c_d = np.array([x_fl_init[0],x_fl_init[1], x_c_init[2]])
+ddotx_c_d = lambda p, v : Kp_c * (p - x_c_d) + Kd_c * (v - np.zeros(3))
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -170,9 +150,32 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_differentiatePos(model, dq, 1, qpos0, data.qpos)
         dx = np.hstack((dq, data.qvel)).T
 
-
         # LQR control law.
         data.ctrl = ctrl0 - K @ dx
+
+        # Get the mass matrix and the bias term
+        mujoco.mj_fullM(model, M, data.qM)
+        M2 = M[6:,6:]
+        M2inv = np.linalg.inv(M2)
+        h2 = data.qfrc_bias[6:]
+
+        J1 = Jc[:,6:]
+        J2 = Jfl[:,6:]
+        H1 = M2inv.T@J1.T@J1@M2inv
+        H2 = M2inv.T@J2.T@J2@M2inv
+        Hpinv = np.linalg.pinv(H1 + H2)
+
+        dx_c = data.subtree_linvel[0]
+        dx_fl = data.subtree_linvel[id_fl]
+        x_c = data.subtree_com[0]
+        r1 = (J1@M2inv@h2+ddotx_c_d(x_c, dx_c))@J1@M2inv
+        r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@J2@M2inv
+
+        tau_d = Hpinv@(r1 + r2)
+        
+        print(ddotx_c_d(x_c, dx_c))
+        print(data.ctrl - tau_d)
+
 
         data.qvel[0] += get_perturbation(pert, step_start-sim_start)
 
