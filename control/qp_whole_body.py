@@ -55,11 +55,11 @@ Jc = np.zeros((3, nv))
 mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('torso').id)
 
 # Get the Jacobian for the left foot.
-jac_foot = np.zeros((3, nv))
-mujoco.mj_jacBodyCom(model, data, jac_foot, None, model.body('foot_left').id)
+Jfl = np.zeros((3, nv))
+mujoco.mj_jacBodyCom(model, data, Jfl, None, model.body('foot_left').id)
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
-jac_diff = Jc - jac_foot
+jac_diff = Jc - Jfl
 Qbalance = jac_diff.T @ jac_diff
 
 # Get all joint names.
@@ -129,27 +129,35 @@ pert = Perturbations([(2, 0.05), (5, 0.1)], 0)
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
-# Get the mass matrix
+# Get the mass matrix and the bias term
 mujoco.mj_fullM(model, M, data.qM)
-Minv = np.linalg.inv(M)
-H1 = Minv.T@Jc.T@Jc@Minv
-Hpinv = np.linalg.pinv(H1)
+M2 = M[6:,6:]
+M2inv = np.linalg.inv(M2)
+h2 = data.qfrc_bias[6:]
 
-h = data.qfrc_bias
+J1 = Jc[:,6:]
+J2 = Jfl[:,6:]
+
+H1 = M2inv.T@J1.T@J1@M2inv
+H2 = M2inv.T@J2.T@J2@M2inv
+Hpinv = np.linalg.pinv(H1 + H2)
 
 # Define task acceleration as pd control output
-ff_g = np.array([0, 0, 9.81])
 Kp_c = 1
-Kd_c = 1
+Kd_c = 0.1
 x_c_init = data.subtree_com[0]
-x_c_d = lambda p, v : Kp_c * (p - x_c_init) + Kd_c * (v - np.zeros(3)) + ff_g
+ddotx_c_d = lambda p, v : Kp_c * (p - x_c_init) + Kd_c * (v - np.zeros(3))
 
-ddotx_d = np.zeros(3)
-r1 = (Jc@Minv@h+ddotx_d)@Jc@Minv
+dx_c = data.subtree_linvel[0]
+r1 = (J1@M2inv@h2+ddotx_c_d(x_c_init, dx_c))@J1@M2inv
 
-tau_d = Hpinv@r1
+id_fl = model.body('foot_left').id
+x_fl_init = data.subtree_com[id_fl]
+dx_fl = data.subtree_linvel[id_fl]
+r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@J2@M2inv
 
-__import__('pdb').set_trace()
+tau_d = Hpinv@(r1 + r2)
+
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
