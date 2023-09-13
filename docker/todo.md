@@ -9,3 +9,6 @@
 - [ ] In nvim, search function jumps automatically to normal mode when not found, creating havoc
 - [ ] Download mujoco binaries https://github.com/google-deepmind/mujoco/releases/download/2.3.7/mujoco-2.3.7-linux-x86_64.tar.gz
 - [ ] pip install robot_descriptions
+- [ ] from vim to tmux jump doesn't work
+git config --global core.editor vi
+git config ...
