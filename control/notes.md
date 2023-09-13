@@ -22,8 +22,8 @@ $$
 
 $$
 \begin{align}
-\dot c = J_c \dot q \\
-\ddot c = J_c \ddot q + \dot J_c \dot q
+\dot c = J_c \dot q_2 \\
+\ddot c = J_c \ddot q_2 + \dot J_c \dot q_2
 \end{align}
 $$
 
@@ -37,11 +37,14 @@ where $^{+}$ denotes a pseudo-inverse.
 ### Considering dynamics
 We use the Lagrangian:
 $$
-M\ddot q + N\dot q + G = \tau
+\begin{align}
+M_1\ddot q + N_1\dot q + G_1 &= J_c \lambda \\
+M_2\ddot q + N_2\dot q + G_2 &= J_c \lambda + \tau
+\end{align}
 $$
 to obtain the desired torque $\tau_d$:
 $$
-\tau_d = M\ddot q_d + N\dot q_d + G 
+\tau_d = M_2\ddot q_{2,d} + N_2\dot q_{2,d} + G_2 
 $$
 
 For the joint-space task, we have directly the PD controller representing the complete task:
@@ -72,7 +75,7 @@ $$
 \begin{align}
 \underset{\tau}{\text{minimise}} & \space \|\ddot x_1 - \ddot x_{1,d}\|^2_{W_1} +  \|\ddot x_2 - \ddot x_{2,d}\|^2_{W_2}  \\
 \text{subject to} \space & \nonumber \\
-& M\ddot q + h= \tau \\
+& M_2\ddot q + h= \tau \\
 & J_1\ddot q + \dot J_1 \dot q= \ddot x_1 \\
 & J_2\ddot q + \dot J_2 \dot q= \ddot x_2
 \end{align}
