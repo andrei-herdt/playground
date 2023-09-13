@@ -7,21 +7,11 @@ import scipy
 
 from helpers import Perturbations, get_perturbation
 
-# from robot_descriptions.loaders.mujoco import load_robot_description
-# robot_mj = load_robot_description("cassie_description")
-# from robot_descriptions.loaders.pinocchio import load_robot_description
-# robot_pin = load_robot_description("cassie_description")
-
-
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 model = mujoco.MjModel.from_xml_path(
     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 data = mujoco.MjData(model)
-
-modelurdf = mujoco.mj_loadXML('/workdir/cassie_description/urdf/cassie_v4.urdf', '/workdir/cassie_description/meshes/')
-
-__import__('pdb').set_trace()
 
 height_offsets = np.linspace(-0.001, 0.001, 2001)
 vertical_forces = []
@@ -61,15 +51,15 @@ nv = model.nv  # Shortcut for the number of DoFs.
 mujoco.mj_resetData(model, data)
 data.qpos = qpos0
 mujoco.mj_forward(model, data)
-jac_com = np.zeros((3, nv))
-mujoco.mj_jacSubtreeCom(model, data, jac_com, model.body('torso').id)
+Jc = np.zeros((3, nv))
+mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('torso').id)
 
 # Get the Jacobian for the left foot.
 jac_foot = np.zeros((3, nv))
 mujoco.mj_jacBodyCom(model, data, jac_foot, None, model.body('foot_left').id)
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
-jac_diff = jac_com - jac_foot
+jac_diff = Jc - jac_foot
 Qbalance = jac_diff.T @ jac_diff
 
 # Get all joint names.
@@ -134,12 +124,32 @@ K = np.linalg.inv(R + B.T @ P @ B) @ B.T @ P @ A
 # Allocate position difference dq.
 dq = np.zeros(model.nv)
 
-
 pert = Perturbations([(2, 0.05), (5, 0.1)], 0)
 
-# Get the mass matrix
 M = np.zeros((model.nv, model.nv))
+Minv = np.zeros((model.nv, model.nv))
+
+# Get the mass matrix
 mujoco.mj_fullM(model, M, data.qM)
+Minv = np.linalg.inv(M)
+H1 = Minv.T@Jc.T@Jc@Minv
+Hpinv = np.linalg.pinv(H1)
+
+h = data.qfrc_bias
+
+# Define task acceleration as pd control output
+ff_g = np.array([0, 0, 9.81])
+Kp_c = 1
+Kd_c = 1
+x_c_init = data.subtree_com[0]
+x_c_d = lambda p, v : Kp_c * (p - x_c_init) + Kd_c * (v - np.zeros(3)) + ff_g
+
+ddotx_d = np.zeros(3)
+r1 = (Jc@Minv@h+ddotx_d)@Jc@Minv
+
+tau_d = Hpinv@r1
+
+__import__('pdb').set_trace()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -151,6 +161,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # Get state difference dx.
         mujoco.mj_differentiatePos(model, dq, 1, qpos0, data.qpos)
         dx = np.hstack((dq, data.qvel)).T
+
 
         # LQR control law.
         data.ctrl = ctrl0 - K @ dx
