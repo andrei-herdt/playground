@@ -153,6 +153,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # LQR control law.
         data.ctrl = ctrl0 - K @ dx
 
+        # Get state
+        dx_c = data.subtree_linvel[0]
+        dx_fl = data.subtree_linvel[id_fl]
+        x_c = data.subtree_com[0]
+
         # Get the mass matrix and the bias term
         mujoco.mj_fullM(model, M, data.qM)
         M2 = M[6:,6:]
@@ -165,9 +170,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         H2 = M2inv.T@J2.T@J2@M2inv
         Hpinv = np.linalg.pinv(H1 + H2)
 
-        dx_c = data.subtree_linvel[0]
-        dx_fl = data.subtree_linvel[id_fl]
-        x_c = data.subtree_com[0]
         r1 = (J1@M2inv@h2+ddotx_c_d(x_c, dx_c))@J1@M2inv
         r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@J2@M2inv
 
@@ -175,7 +177,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         
         print(ddotx_c_d(x_c, dx_c))
         print(data.ctrl - tau_d)
-
 
         data.qvel[0] += get_perturbation(pert, step_start-sim_start)
 
