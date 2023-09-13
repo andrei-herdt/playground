@@ -93,6 +93,16 @@ $$
 $$
 where $H_j = M^{-T}J_j^TW_jJ_jM^{-1}$ and $r_j = (J_jM^{-1}h+\ddot x_{j,d})W_jJ_jM^{-1}$
 
+### Notes
+Single com task with $\ddot x_d$ set to 0, produces following torque command
+```
+array([ -0.   ,   0.   , 400.68 ,   0.   ,  -0.   ,   0.   ,  -0.   ,  -0.   ,  -0.   ,   0.   ,
+        -0.   ,   0.   ,   0.   ,   0.   ,   0.   ,  -0.   ,   0.   ,   0.   ,   0.   ,   0.   ,
+        -0.   ,  -0.   ,  -0.   ,   0.   ,   0.   ,  -0.   ,  -0.001])
+```
+The PD task controller is missing at this stage. The desired acceleration should consider the gravity.
+
+
 ## Contact forces
 
 Let's start considering contact forces to further improve robustness.
