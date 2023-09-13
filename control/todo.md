@@ -1,11 +1,12 @@
-- [ ] Implement analytical solution to qp-based problem
+- [x] Implement analytical solution to qp-based problem
   - [x] Get mass matrix
-  - [ ] Build weight matrices
   - [x] Build task jacobians
-  - [ ] Build reference vectors
+  - [x] Build reference vectors
+  - [ ] Robot is unstable, solutions differ
+    - [ ] Build weight matrices
 
 - [ ] Solve same problem using proxqp
-- [ ] Integrate https://github.com/machines-in-motion/mujoco_utils
+
 - [ ] Create identic models of humanoid in mujoco and pinocchio
 ```python
 from robot_descriptions.loaders.mujoco import load_robot_description
