@@ -129,14 +129,20 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
-# Define task acceleration as pd control output
-Kp_c = 1
-Kd_c = 0.1
+# Task weights
+W1 = 1*np.identity(3)
+W2 = 0*np.identity(3)
+W3 = 0.1*np.identity(nu)
+
+# Constants
 x_c_init = data.subtree_com[0]
 id_fl = model.body('foot_left').id
 x_fl_init = data.subtree_com[id_fl]
-
 x_c_d = np.array([x_fl_init[0],x_fl_init[1], x_c_init[2]])
+
+# Task function
+Kp_c = 1
+Kd_c = 0.1
 ddotx_c_d = lambda p, v : Kp_c * (p - x_c_d) + Kd_c * (v - np.zeros(3))
 
 sim_start = time.time()
@@ -166,17 +172,18 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         J1 = Jc[:,6:]
         J2 = Jfl[:,6:]
-        H1 = M2inv.T@J1.T@J1@M2inv
-        H2 = M2inv.T@J2.T@J2@M2inv
-        Hpinv = np.linalg.pinv(H1 + H2)
+        H1 = M2inv.T@J1.T@W1@J1@M2inv
+        H2 = M2inv.T@J2.T@W2@J2@M2inv
+        Hpinv = np.linalg.pinv(H1 + H2 + W3)
 
-        r1 = (J1@M2inv@h2+ddotx_c_d(x_c, dx_c))@J1@M2inv
-        r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@J2@M2inv
+        r1 = (J1@M2inv@h2+ddotx_c_d(x_c, dx_c))@W1@J1@M2inv
+        r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@W2@J2@M2inv
 
         tau_d = Hpinv@(r1 + r2)
         
         print(ddotx_c_d(x_c, dx_c))
         print(data.ctrl - tau_d)
+        print(tau_d)
 
         data.qvel[0] += get_perturbation(pert, step_start-sim_start)
 

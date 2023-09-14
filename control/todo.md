@@ -3,7 +3,9 @@
   - [x] Build task jacobians
   - [x] Build reference vectors
   - [ ] Robot is unstable, solutions differ
-    - [ ] Build weight matrices
+    - [x] Build weight matrices
+    - [x] Add joint task
+    - [ ] Why are torque signs different?
 
 - [ ] Solve same problem using proxqp
 
