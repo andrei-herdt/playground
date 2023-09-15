@@ -38,7 +38,7 @@ SSH=0
 NAME=''
 NETWORKING=''
 DOCKER_EXTRA_FLAGS_=()
-ENTRYPOINT="/bin/bash"
+ENTRYPOINT="/bin/tmux"
 DEVIMAGE=_dev
 
 while [ "$1" != "" ]; do

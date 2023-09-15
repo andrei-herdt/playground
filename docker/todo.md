@@ -14,3 +14,5 @@ git config --global core.editor vi
 git config ...
 start tmux automa
 install j
+
+- [ ] Something blocks run_docker. Pressing ctrl-c helps
