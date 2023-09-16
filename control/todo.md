@@ -6,6 +6,8 @@
     - [x] Build weight matrices
     - [x] Add joint task
     - [ ] Why are torque signs different?
+    - [ ] Relax solver impedance
+
 
 - [ ] Solve same problem using proxqp
 
