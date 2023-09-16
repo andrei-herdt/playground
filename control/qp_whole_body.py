@@ -36,6 +36,8 @@ qpos0 = data.qpos.copy()  # Save the position setpoint.
 mujoco.mj_inverse(model, data)
 qfrc0 = data.qfrc_inverse.copy()
 
+__import__('pdb').set_trace()
+
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
 
@@ -131,19 +133,25 @@ Minv = np.zeros((model.nv, model.nv))
 
 # Task weights
 W1 = 1*np.identity(3)
-W2 = 0*np.identity(3)
-W3 = 0.1*np.identity(nu)
+W2 = 100*np.identity(3)
+W3 = .1*np.identity(nu)
 
 # Constants
 x_c_init = data.subtree_com[0]
 id_fl = model.body('foot_left').id
 x_fl_init = data.subtree_com[id_fl]
-x_c_d = np.array([x_fl_init[0],x_fl_init[1], x_c_init[2]])
+x_c_d = np.array([x_fl_init[0], x_fl_init[1], x_c_init[2]])
+
+g = np.array([0, 0, 9.81])
 
 # Task function
 Kp_c = 1
 Kd_c = 0.1
-ddotx_c_d = lambda p, v : Kp_c * (p - x_c_d) + Kd_c * (v - np.zeros(3))
+
+
+def ddotx_c_d(p, v): return Kp_c * (p - x_c_d) + \
+    Kd_c * (v - np.zeros(3))  # + g
+
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -166,12 +174,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # Get the mass matrix and the bias term
         mujoco.mj_fullM(model, M, data.qM)
-        M2 = M[6:,6:]
+        M2 = M[6:, 6:]
         M2inv = np.linalg.inv(M2)
         h2 = data.qfrc_bias[6:]
 
-        J1 = Jc[:,6:]
-        J2 = Jfl[:,6:]
+        J1 = Jc[:, 6:]
+        J2 = Jfl[:, 6:]
         H1 = M2inv.T@J1.T@W1@J1@M2inv
         H2 = M2inv.T@J2.T@W2@J2@M2inv
         Hpinv = np.linalg.pinv(H1 + H2 + W3)
@@ -180,13 +188,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@W2@J2@M2inv
 
         tau_d = Hpinv@(r1 + r2)
-        
-        print(ddotx_c_d(x_c, dx_c))
-        print(data.ctrl - tau_d)
-        print(tau_d)
 
-        data.qvel[0] += get_perturbation(pert, step_start-sim_start)
+        # data.ctrl = -tau_d
 
+        # print(data.ctrl)
+        # print(tau_d)
+        print(data.body('foot_left').xipos)
+        # here
+        # data.qvel[0] += get_perturbation(pert, step_start-sim_start)
+
+        input()
         mujoco.mj_step(model, data)
 
         viewer.sync()
