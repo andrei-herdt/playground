@@ -5,6 +5,7 @@
   - [ ] Robot is unstable, solutions differ
     - [x] Build weight matrices
     - [x] Add joint task
+    - [ ] When using weld, where are the parameters in mjModel?
     - [ ] Why are torque signs different?
     - [ ] Relax solver impedance
 
