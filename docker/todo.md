@@ -17,3 +17,4 @@ install j
 
 - [ ] Something blocks run_docker. Pressing ctrl-c helps
 - [ ] Entry point should be /workdir/playground/
+- [ ] Store history outside of docker
