@@ -19,7 +19,3 @@ robot_mj = load_robot_description("jvrc_mj_description")
 from robot_descriptions.loaders.pinocchio import load_robot_description
 robot_pin = load_robot_description("jvrc_description")
 ```
-
-- [ ] git public key not available inside docker
-- [ ] dubious access rights error message in docker
-

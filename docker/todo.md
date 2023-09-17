@@ -18,3 +18,6 @@ install j
 - [ ] Something blocks run_docker. Pressing ctrl-c helps
 - [ ] Entry point should be /workdir/playground/
 - [ ] Store history outside of docker
+- [ ] git public key not available inside docker
+- [ ] dubious access rights error message in docker
+- [ ] What is the short key for closing buffer
