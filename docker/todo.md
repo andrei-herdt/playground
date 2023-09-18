@@ -21,3 +21,4 @@ install j
 - [ ] git public key not available inside docker
 - [ ] dubious access rights error message in docker
 - [ ] What is the short key for closing buffer
+- [ ] Add restart_latest.sh 

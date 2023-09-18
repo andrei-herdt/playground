@@ -12,6 +12,7 @@ ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
 ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
 ARG BLD_MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
 ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
+ARG BLD_GIT_LFS=https://github.com/git-lfs/git-lfs/releases/download/v2.9.0/git-lfs-linux-amd64-v2.9.0.tar.gz
 
 FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu20.04
 
@@ -29,6 +30,7 @@ ARG BLD_URDFDOM_VERSION
 ARG BLD_TINYXML_URL
 ARG BLD_BOOST_URL
 ARG BLD_MINICONDA_URL
+ARG BLD_GIT_LFS
 
 ENV INSTALLDIR=/root
 
@@ -84,12 +86,17 @@ RUN cd $RH_INSTALLDIR \
 RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
 RUN pip install meshcat mujoco matplotlib mediapy
 
+
 # tzdata non-interactive
 RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata
 
+# Install Git LFS
+RUN cd /root && wget --quiet ${BLD_GIT_LFS} -O /root/git-lfs.tar.bz2 \
+        && mkdir git-lfs && cd /root/git-lfs && tar -xf /root/git-lfs.tar.bz2 \
+        && ./install.sh && cd /root; rm -rf /root/git-lfs
 
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
