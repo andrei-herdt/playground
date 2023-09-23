@@ -193,11 +193,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # print(data.ctrl)
         # print(tau_d)
-        print(data.body('foot_left').xipos)
+        # print(data.body('foot_left').xipos)
         # here
         # data.qvel[0] += get_perturbation(pert, step_start-sim_start)
 
-        input()
+        # input()
         mujoco.mj_step(model, data)
 
         viewer.sync()
