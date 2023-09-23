@@ -1,0 +1,4 @@
+- [ ] Implement analytical solution
+- [ ] Implement proxQP for equality constrained problems
+- [ ] Extend set of eq. constr. problems
+  - [ ] Can we add set of problems from proxqp?

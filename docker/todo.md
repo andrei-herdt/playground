@@ -23,4 +23,6 @@ install j
 - [ ] What is the short key for closing buffer
 - [ ] Add restart_latest.sh 
 - [ ] Add connect_latest.sh 
-- [ ] Make lazygit work
+- [ ] Make lazygit work in docker
+- [ ] Integrate clangformat into vim
+
