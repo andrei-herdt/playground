@@ -22,3 +22,5 @@ install j
 - [ ] dubious access rights error message in docker
 - [ ] What is the short key for closing buffer
 - [ ] Add restart_latest.sh 
+- [ ] Add connect_latest.sh 
+- [ ] Make lazygit work
