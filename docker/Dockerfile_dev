@@ -48,3 +48,8 @@ RUN mkdir -p /root/TMP \
 && cp /root/TMP/dotfiles/.tmux.conf ~ \
 && rm -rf /root/TMP
 
+# Configure git
+RUN git config --global --add safe.directory /workdir/playground \
+&& git config --global user.email "andrei.herdt@gmail.com" \
+&& git config --global user.name "Andrei Herdt" \
+&& git config --global core.editor vi
