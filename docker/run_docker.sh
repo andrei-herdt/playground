@@ -188,6 +188,7 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	${DEVICES} \
 	${DOCKER_EXTRA_FLAGS} \
 	--entrypoint ${ENTRYPOINT} \
+	--workdir /workdir/playground \
 	-e XAUTHORITY=$XAUTH \
 	-e DISPLAY=${DISPLAY} \
 	${IMAGE}${DEVIMAGE}:$VERSION
