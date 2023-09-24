@@ -182,6 +182,8 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	-v ${PWD}/workdir:/workdir \
 	-v ${PWD}/workdir/.config/nvim:/root/.config/nvim \
 	-v ${PWD}/workdir/.local/share/nvim:/root/.local/share/nvim \
+	-v ~/.bash_history:/root/.bash_history \
+	-v ~/.zsh_history:/root/.zsh_history \
 	${MOUNT_LOG_DIR} \
 	${EXTRA_MOUNTS} \
 	${EXTRA_HOSTS} \
