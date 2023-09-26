@@ -10,6 +10,7 @@
     - [ ] Why are torque signs different?
 
 Equality constrain foot
+- [ ] Validate using manipulator model
     - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
       - [ ] Read chapter on solver parameters
       - [ ] meaning of model.eq_*
