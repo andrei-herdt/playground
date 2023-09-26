@@ -11,6 +11,7 @@ install j
 - [ ] What is the short key for closing buffer
 - [ ] Make lazygit work in docker
 - [ ] Integrate clangformat into vim
+- [ ] Add xdg-open
 
 - [ ] Mount host directory for vim plugins (see overlayfs)
 ```dockerfile
