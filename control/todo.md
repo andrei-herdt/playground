@@ -12,6 +12,7 @@
 Equality constrain foot
 - [wip] Validate using manipulator model
   - [ ] why is computed com acceleration non-zero the first step? qacc, and qvel non-zero?? 
+  - [ ] implement joint posture task
     - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
       - [ ] Read chapter on solver parameters
       - [ ] meaning of model.eq_*
