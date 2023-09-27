@@ -52,10 +52,10 @@ Kp_q = 10
 Kd_q = 1
 
 def ddotx_c_d(p, v): 
-    return Kp_c * (p - x_c_d) + Kd_c * (v - np.zeros(3))
+    return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
 
 def ddotq_d(p, v): 
-    return Kp_q * (p - q_d) + Kd_q * (v - np.zeros(6)) 
+    return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(6)) 
 
 mujoco.mj_fullM(model, M, data.qM)
 
@@ -64,7 +64,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
     start = time.time()
     while viewer.is_running() and time.time() - start < 30:
-        print('\n')
         step_start = time.time()
 
         # Get state
@@ -120,9 +119,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ddot_c = Jc@data.qacc + Jdot@data.qvel
         data.ctrl[:6] = tau_d
 
-        print(ddot_c)
+        print(data.qacc)
         print(data.ctrl)
-        # input()
+        print('\n')
 
         mujoco.mj_step(model, data)
 
