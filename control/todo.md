@@ -11,15 +11,15 @@
 
 Equality constrain foot
 - [wip] Validate using manipulator model
-  - [ ] why is computed com acceleration non-zero the first step? qacc, and qvel non-zero?? 
-  - [x] implement joint posture task
-  - [ ] joint posture task is unstable
-    - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
-      - [ ] Read chapter on solver parameters
-      - [ ] meaning of model.eq_*
-      - [ ] meaning of data.qfrc_*
-      - [ ] Why are torques much larger when activating equality constraints
-        - [ ] Relax solver impedance?
+  - [ ] Why is com task oscillating? Is it because it is underdetermined? 
+  - [ ] Why does the joint task make the conditioning worse?
+
+- [ ] Understand constraints mechanics. Weld seems to work but destabilises control
+  - [ ] Read chapter on solver parameters
+  - [ ] meaning of model.eq_*
+  - [ ] meaning of data.qfrc_*
+  - [ ] Why are torques much larger when activating equality constraints
+    - [ ] Relax solver impedance?
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
@@ -27,6 +27,8 @@ Inequality constrain foot
 - [ ] Can we visualize cones?
 
 - [ ] Create identic models of humanoid in mujoco and pinocchio
+
+- [ ] Add plots
 ```python
 from robot_descriptions.loaders.mujoco import load_robot_description
 robot_mj = load_robot_description("jvrc_mj_description")

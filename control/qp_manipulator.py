@@ -23,7 +23,7 @@ nv = model.nv  # Shortcut for the number of DoFs.
 data = mujoco.MjData(model)
 
 for i in range(nu):
-    data.qpos[i] = 0.1
+    data.qpos[i] = 0.5
 data.qpos[1] = np.pi/2
 mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
@@ -35,9 +35,9 @@ M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
 # Task weights
-W1 = 0*np.identity(3)
+W1 = 1*np.identity(3)
 W2 = 1*np.identity(6)
-W3 = 0.001*np.identity(nu)
+W3 = .01*np.identity(nu)
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
@@ -46,12 +46,13 @@ q_d = data.qpos[:6].copy()
 g = np.array([0, 0, 9.81])
 
 # Task function
-Kp_c = 1
-Kd_c = 0.1
-Kp_q = 10
-Kd_q = 1
+Kp_c = 1000
+Kd_c = 10
+Kp_q = 0
+Kd_q = 10
 
 def ddotx_c_d(p, v): 
+    print(p-x_c_d)
     return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
 
 def ddotq_d(p, v): 
@@ -63,7 +64,7 @@ sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
     start = time.time()
-    while viewer.is_running() and time.time() - start < 30:
+    while viewer.is_running():
         step_start = time.time()
 
         # Get state
@@ -82,15 +83,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J2 = np.eye(6,6)
         H1 = Minv.T@J1.T@W1@J1@Minv
         H2 = Minv.T@J2.T@W2@J2@Minv
-        Hpinv = np.linalg.pinv(H1 + H2)
+        Hpinv = np.linalg.pinv(H1 + H2 + W3[:6,:6])
+        print(np.linalg.cond(H1+H2 + W3[:6,:6]))
 
         r1 = (J1@Minv@h1+ddotx_c_d(x_c, dx_c))@W1@J1@Minv
         r2 = (J2@Minv@h1+ddotq_d(data.qpos[:6], data.qvel[:6]))@W2@J2@Minv
 
         tau_d = Hpinv@(r1 + r2)
 
-        print(ddotq_d(data.qpos[:6], data.qvel[:6]))
-        
         # Calculate 'dot J'
         # Given some qpos we need to first update the internal datastructures. I'm assuming all this happens within a rollout, so qpos has just been updated by mj_step but derived quantities have not. mj_forward will do this for us but it's enough to call mj_kinematics and mj_comPos.
         #
@@ -119,8 +119,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ddot_c = Jc@data.qacc + Jdot@data.qvel
         data.ctrl[:6] = tau_d
 
-        print(data.qacc)
-        print(data.ctrl)
+        print(ddotx_c_d(x_c, dx_c) - ddot_c)
         print('\n')
 
         mujoco.mj_step(model, data)
