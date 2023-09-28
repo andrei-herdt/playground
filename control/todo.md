@@ -1,19 +1,6 @@
-- [x] Implement analytical solution to qp-based problem
-  - [x] Get mass matrix
-  - [x] Build task jacobians
-  - [x] Build reference vectors
-  - [ ] Robot is unstable, solutions differ
-    - [x] Build weight matrices
-    - [x] Add joint task
-    - [x] When using weld, where are the parameters in mjModel? We want to change the init position
-          anchor set to 0,0,0 should set constraint to center of the first body
-    - [ ] Why are torque signs different?
+- [ ] Why is the joint control task for humanoid so fragile 
 
-Equality constrain foot
-- [wip] Validate using manipulator model
-  - [ ] Why is com task oscillating? Is it because it is underdetermined? 
-  - [ ] Why does the joint task make the conditioning worse?
-
+Equality constraints
 - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
   - [ ] Read chapter on solver parameters
   - [ ] meaning of model.eq_*
@@ -29,6 +16,9 @@ Inequality constrain foot
 - [ ] Create identic models of humanoid in mujoco and pinocchio
 
 - [ ] Add plots
+
+General:
+  - [ ] Why does the joint task make the conditioning worse? It is the mass matrix.
 ```python
 from robot_descriptions.loaders.mujoco import load_robot_description
 robot_mj = load_robot_description("jvrc_mj_description")
