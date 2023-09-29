@@ -102,13 +102,15 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('bracelet_link').id)
         J1 = Jc[:,:6]
         J2 = np.eye(6,6)
-        H1 = Minv.T@J1.T@W1@J1@Minv
-        H2 = Minv.T@J2.T@W2@J2@Minv
+        J1Minv = J1@Minv
+        J2Minv = J2@Minv
+        H1 = J1Minv.T@W1@J1Minv
+        H2 = J2Minv.T@W2@J2Minv
         H = H1 + H2 + W3[:6,:6]
         Hpinv = np.linalg.pinv(H)
 
-        r1 = (J1@Minv@h1+ddotx_c_d(x_c, dx_c))@W1@J1@Minv
-        r2 = (J2@Minv@h1+ddotq_d(data.qpos[:6], data.qvel[:6]))@W2@J2@Minv
+        r1 = (J1Minv@h1+ddotx_c_d(x_c, dx_c))@W1@J1Minv
+        r2 = (J2Minv@h1+ddotq_d(data.qpos[:6], data.qvel[:6]))@W2@J2Minv
         g = r1 + r2
 
         qp.init(H, -g, A, b, C, l, u, l_box, u_box)
