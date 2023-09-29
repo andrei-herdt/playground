@@ -2,27 +2,33 @@ import time
 
 import mujoco
 import mujoco.viewer
+
 import numpy as np
 import scipy
 
 import proxsuite
+from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import Perturbations, get_perturbation, calculateCoMAcc
+
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
+# model = load_robot_description("gen3_mj_description")
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
+    '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 data = mujoco.MjData(model)
+#
+# Get the center of mass of the body
+ee_id = model.body('bracelet_link').id
+ee_com = data.subtree_com[ee_id]
 
-from robot_descriptions.loaders.mujoco import load_robot_description
-model = load_robot_description("gen3_mj_description")
+
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
 
-data = mujoco.MjData(model)
 
 for i in range(nu):
     data.qpos[i] = 0.5
@@ -37,7 +43,7 @@ M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
 # Task weights
-W1 = 1*np.identity(3)
+W1 = 10*np.identity(3)
 W2 = 1*np.identity(6)
 W3 = .01*np.identity(nu)
 
@@ -49,7 +55,7 @@ g = np.array([0, 0, 9.81])
 
 # Task function
 Kp_c = 1000
-Kd_c = 10
+Kd_c = 100
 Kp_q = 0
 Kd_q = 10
 
@@ -83,8 +89,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         step_start = time.time()
 
         # Get state
-        dx_c = data.subtree_linvel[0]
-        x_c = data.subtree_com[0]
+        dx_c = data.subtree_linvel[ee_id]
+        x_c = data.subtree_com[ee_id]
 
         # Get the mass matrix and the bias term
         mujoco.mj_fullM(model, M, data.qM)
@@ -93,7 +99,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M1 = M[:6,:6]
         h1 = h[:6]
         Minv = np.linalg.inv(M1)
-        mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('base_link').id)
+        mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('bracelet_link').id)
         J1 = Jc[:,:6]
         J2 = np.eye(6,6)
         H1 = Minv.T@J1.T@W1@J1@Minv
@@ -111,11 +117,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         tau_d = qp.results.x
 
         data.ctrl[:6] = tau_d
-
-        print(tau_d / qp.results.x)
-        print(tau_d)
-        print(qp.results.x)
-        print('\n')
 
         mujoco.mj_step(model, data)
 
