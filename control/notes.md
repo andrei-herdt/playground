@@ -93,6 +93,19 @@ $$
 $$
 where $H_j = M^{-T}J_j^TW_jJ_jM^{-1}$ and $r_j = (J_jM^{-1}h+\ddot x_{j,d})W_jJ_jM^{-1}$
 
+### Constrain end effector forces
+$$
+M_2\ddot q + h_2 = \tau + J_e^T\lambda,
+$$
+where $J_e$ is the end effector Jacobian.
+The dense formulation then becomes:
+$$
+\begin{align}
+\underset{\tau,\lambda}{\text{minimise}} & \space\|J_1M^{-1}(\tau + J_e^T\lambda - h) - \ddot x_{1,d}\|^2_{W_1} +  \|J_2M^{-1}(\tau + J_e^T\lambda - h) - \ddot x_{2,d}\|^2_{W_2}  \\
+\end{align}
+$$
+With $u = (\tau, \lambda)^T$, $H_1 = (J_1M^{-1},J_1M^{-1}J_e^T)$
+
 ### Notes
 Single com task with $\ddot x_d$ set to 0, produces following torque command
 

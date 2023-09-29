@@ -1,5 +1,6 @@
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
+- [ ] Try to express dynamics as equality constraints
 - [ ] Double check solutions are correct, using qp and linalg.lstsq
   - [ ] Add inequalities
 - [ ] Can we visualize cones?
