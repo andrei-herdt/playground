@@ -37,15 +37,19 @@ mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
 # Get the Jacobian for the root body (torso) CoM.
-Jc = np.zeros((3, nv))
+Je = np.zeros((3, nv))
 
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
+nforce = 3
+A1 = np.zeros((3, 6+nforce))
+A2 = np.zeros((6, 6+nforce))
+
 # Task weights
 W1 = 10*np.identity(3)
 W2 = 1*np.identity(6)
-W3 = .01*np.identity(nu)
+W3 = .01*np.identity(6+nforce)
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
@@ -67,7 +71,7 @@ def ddotq_d(p, v):
 
 mujoco.mj_fullM(model, M, data.qM)
 
-n = nu-1
+n = nu-1 + nforce
 n_eq = 0
 n_in = 0
 qp = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
@@ -78,8 +82,6 @@ u = None
 l = None
 l_box = -np.ones(n) * 1.0e2
 u_box = np.ones(n) * 1.0e2
-
-__import__('pdb').set_trace()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -99,24 +101,27 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M1 = M[:6,:6]
         h1 = h[:6]
         Minv = np.linalg.inv(M1)
-        mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('bracelet_link').id)
-        J1 = Jc[:,:6]
+        mujoco.mj_jacSubtreeCom(model, data, Je, model.body('bracelet_link').id)
+        J1 = Je[:,:6]
         J2 = np.eye(6,6)
-        J1Minv = J1@Minv
-        J2Minv = J2@Minv
-        H1 = J1Minv.T@W1@J1Minv
-        H2 = J2Minv.T@W2@J2Minv
-        H = H1 + H2 + W3[:6,:6]
+        A1[:,:6] = J1@Minv
+        A1[:,6:] = J1@Minv@J1.T
+        A2[:,:6] = J2@Minv
+        A2[:,6:] = J2@Minv@J1.T
+        H1 = A1.T@W1@A1
+        H2 = A2.T@W2@A2
+        H = H1 + H2 + W3[:9,:9]
         Hpinv = np.linalg.pinv(H)
 
-        r1 = (J1Minv@h1+ddotx_c_d(x_c, dx_c))@W1@J1Minv
-        r2 = (J2Minv@h1+ddotq_d(data.qpos[:6], data.qvel[:6]))@W2@J2Minv
+        r1 = (A1[:,:6]@h1+ddotx_c_d(x_c, dx_c))@W1@A1
+        r2 = (A2[:,:6]@h1+ddotq_d(data.qpos[:6], data.qvel[:6]))@W2@A2
         g = r1 + r2
 
         qp.init(H, -g, A, b, C, l, u, l_box, u_box)
         qp.solve()
 
-        tau_d = qp.results.x
+        tau_d = qp.results.x[:6]
+        force = qp.results.x[6:9]
 
         data.ctrl[:6] = tau_d
 
