@@ -15,7 +15,8 @@ model = mujoco.MjModel.from_xml_path(
     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 
 #tmp
-model.opt.gravity = np.zeros(3)
+# model.opt.gravity = np.zeros(3)
+#
 data = mujoco.MjData(model)
 
 nu = model.nu  # Alias for the number of actuators.
@@ -28,7 +29,6 @@ data = mujoco.MjData(model)
 
 #tmp
 best_offset = -0.0005
-best_offset = +0.1
 
 mujoco.mj_resetDataKeyframe(model, data, 1)
 mujoco.mj_forward(model, data)
@@ -50,26 +50,24 @@ M = np.zeros((nv, nv))
 Minv = np.zeros((nv, nv))
 
 # Task weights
-W1 = 0*np.identity(3)
+W1 = 1*np.identity(3)
 W2 = 1*np.identity(nu)
-W3 = 1*np.identity(nu)
+W3 = .1*np.identity(nu)
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
 q_d = data.qpos[7:].copy()
 
 # Task function
-Kp_c = 1000
-Kd_c = 100
+Kp_c = 10
+Kd_c = 1 
 Kp_q = 1
 Kd_q = .1
 
 def ddotx_c_d(p, v): 
-    print("e_p: ",p-x_c_d)
     return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
 
 def ddotq_d(p, v): 
-    print("e_p: ",p-q_d)
     return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
 
 mujoco.mj_fullM(model, M, data.qM)
@@ -106,25 +104,19 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         H1 = Minv.T@J1.T@W1@J1@Minv
         H2 = Minv.T@J2.T@W2@J2@Minv
         H = H1+H2+W3
-        print("cond(H)", np.linalg.cond(H))
         Hpinv = np.linalg.pinv(H)
 
-        print(J2@Minv@h1)
         r1 = (J1@Minv@h1+ddotx_c_d(x_c, dx_c))@W1@J1@Minv
         # r2 = (J2@Minv@h1+ddotq_d(data.qpos[pmapu], data.qvel[vmapu]))@W2@J2@Minv
         r2 = (ddotq_d(data.qpos[pmapu], data.qvel[vmapu]))@W2@J2@Minv
 
         tau_d = Hpinv@(r1 + r2)
-        print("data.ctrl", data.ctrl)
-        print("tau_d", tau_d)
         data.ctrl = tau_d
 
         ddotc = calculateCoMAcc(model, data)
 
-        print("ddotq_d: ", ddotq_d(data.qpos[pmapu], data.qvel[vmapu]))
-
         mujoco.mj_step(model, data)
-        print("qacc: ", data.qacc)
+        print("|ddq-ddq_d|: ", np.linalg.norm(data.qacc[vmapu]-ddotq_d(data.qpos[pmapu], data.qvel[vmapu])))
         # input()
         print('\n')
 

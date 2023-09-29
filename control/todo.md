@@ -1,6 +1,13 @@
-- [ ] Why is the joint control task for humanoid so fragile 
+Inequality constrain foot
+- [ ] Solve same problem using proxqp
+  - [ ] Add inequalities
+- [ ] Can we visualize cones?
+
+- [ ] Why does the bias term of the joint control task make joint task less robust?
   - [ ] Is the commanded joint acceleration being realised?
   - [ ] In zero-gravity, zero torque command results in non-zero joint accelerations... Is it because of gravity?
+    - [ ] Why is gravity not deactivated by model.opt.gravity = zero
+    - [ ] Do we need to use the whole mass matrix?
 
 Equality constraints
 - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
@@ -10,10 +17,6 @@ Equality constraints
   - [ ] Why are torques much larger when activating equality constraints
     - [ ] Relax solver impedance?
 
-Inequality constrain foot
-- [ ] Solve same problem using proxqp
-  - [ ] Add inequalities
-- [ ] Can we visualize cones?
 
 - [ ] Create identic models of humanoid in mujoco and pinocchio
 
