@@ -36,6 +36,7 @@ RUN pip3 install notebook pudb
 
 # Install robot descriptions  
 RUN pip3 install robot_descriptions
+ENV ROBOT_DESCRIPTIONS_CACHE=/workdir/
 
 # Configurations
 RUN apt-get update \
