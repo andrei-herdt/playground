@@ -15,6 +15,8 @@ install j
 
 - [ ] Mount host directory for vim plugins (see overlayfs)
 - [ ] Add surround plugin
+- [ ] **tab to call fzf
+- [ ] make jumping to file from editor work
 ```dockerfile
    mount -t overlay overlay -o lowerdir=/opt/rootfs/,upperdir=/workdir/armchroot-upper/,workdir=/workdir/armchroot-work/ /workdir/armchroot
 ```

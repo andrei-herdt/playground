@@ -1,5 +1,6 @@
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
+- [ ] Double check solutions are correct, using qp and linalg.lstsq
   - [ ] Add inequalities
 - [ ] Can we visualize cones?
 

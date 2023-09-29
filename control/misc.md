@@ -11,3 +11,5 @@ https://github.com/robot-descriptions/robot_descriptions.py#arms
 (option)[https://mujoco.readthedocs.io/en/stable/XMLreference.html#option]
 (solver parameters)[https://mujoco.readthedocs.io/en/stable/modeling.html#solver-parameters]
 
+# ProxQP links
+https://github.com/Simple-Robotics/proxsuite/tree/main/examples/python
