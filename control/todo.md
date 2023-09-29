@@ -1,4 +1,6 @@
 - [ ] Why is the joint control task for humanoid so fragile 
+  - [ ] Is the commanded joint acceleration being realised?
+  - [ ] In zero-gravity, zero torque command results in non-zero joint accelerations... Is it because of gravity?
 
 Equality constraints
 - [ ] Understand constraints mechanics. Weld seems to work but destabilises control
