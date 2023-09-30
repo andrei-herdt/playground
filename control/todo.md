@@ -1,5 +1,6 @@
 - [ ] Merge branch into master
 - [ ] Check 3dof formulation is sane
+- [ ] Get angular velocity
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
