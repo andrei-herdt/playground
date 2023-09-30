@@ -3,3 +3,4 @@ __pycache__/
 MJDATA.TXT
 build*/
 3rdparty/mujoco/
+*.mjb
