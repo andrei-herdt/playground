@@ -17,14 +17,14 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
 # model = load_robot_description("gen3_mj_description")
-model = mujoco.MjModel.from_xml_path(
-    '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
-#     '3dof.xml')
+#     '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+model = mujoco.MjModel.from_xml_path(
+    '3dof.xml')
 data = mujoco.MjData(model)
 #
 # Get the center of mass of the body
-ee_id = model.body('bracelet_link').id
+ee_id = model.body('base_link').id
 ee_com = data.subtree_com[ee_id]
 
 nu = model.nu  # Alias for the number of actuators.
@@ -35,9 +35,9 @@ pmapu = [*range(nq0,nq0+nu, 1)]
 vmapu = [*range(nv0,nv0+nu, 1)]
 udof = np.ix_(vmapu,vmapu) # Controlled DoFs
 
-for i in range(nu):
-    data.qpos[i] = 0.5
-data.qpos[1] = np.pi/2
+# for i in range(nu):
+#     data.qpos[i] = 0.5
+# data.qpos[1] = np.pi/2
 mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
@@ -55,19 +55,18 @@ A2 = np.zeros((nu, nu+nforce))
 A4 = np.zeros((3, nu+nforce))
 
 # Task weights
-W1 = 10*np.identity(3)
-W2 = 1*np.identity(nu)
-W3 = .01*np.identity(nu+nforce)
-# W1 = 0*np.identity(3)
-# W2 = 0*np.identity(nu)
-# W3 = 0*np.identity(nu+nforce)
-W4 = 0*np.identity(3)
+# W1 = 10*np.identity(3)
+# W2 = 1*np.identity(nu)
+# W3 = .01*np.identity(nu+nforce)
+W1 = 0*np.identity(3)
+W2 = 0*np.identity(nu)
+W3 = 0*np.identity(nu+nforce)
+W4 = 1*np.identity(3)
+W4[2] = 0.0
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
 q_d = data.qpos[:nu].copy()
-
-g = np.array([0, 0, 9.81])
 
 # Task function
 Kp_c = 1000
@@ -82,6 +81,8 @@ def ddotx_c_d(p, v):
 
 def ddotq_d(p, v): 
     return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
+
+__import__('pdb').set_trace()
 
 mujoco.mj_fullM(model, M, data.qM)
 
