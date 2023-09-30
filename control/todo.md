@@ -1,3 +1,6 @@
+- [ ] Merge branch into master
+- [ ] Check 3dof formulation is sane
+
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
 - [ ] Try to express dynamics as equality constraints
