@@ -1,0 +1,12 @@
+<mujoco model="gen3">
+  <worldbody>
+    <body name="base_link" pos="0 0 0" quat="1 0 0 0">
+      <joint axis="1 0 0"/>
+      <joint axis="0 1 0"/>
+      <joint axis="0 0 1"/>
+      <body name="link" pos="0 0 0" quat="1 0 0 0">
+        <geom type="capsule" size="0.06" fromto="0 0 0  0 0 -.4"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
