@@ -42,7 +42,7 @@ Jebr = np.zeros((3, nv))
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
-nforce = 3
+nforce = 0
 A1 = np.zeros((3, 6+nforce))
 A2 = np.zeros((6, 6+nforce))
 A4 = np.zeros((3, 6+nforce))
@@ -51,8 +51,7 @@ A4 = np.zeros((3, 6+nforce))
 W1 = 10*np.identity(3)
 W2 = 1*np.identity(6)
 W3 = .01*np.identity(6+nforce)
-W4 = 0*np.identity(3)
-W4[2,2] = 0
+W4 = 10*np.identity(3)
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
@@ -64,8 +63,10 @@ g = np.array([0, 0, 9.81])
 Kp_c = 1000
 Kd_c = 100
 Kp_q = 0
-Kd_q = 1
+Kd_q = 10
 
+Korient = 1000
+ 
 def ddotx_c_d(p, v): 
     return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
 
@@ -116,11 +117,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J4 = Jebr[:,:6]
         # todo: double check J1.T
         A1[:,:6] = J1@Minv
-        A1[:,6:] = J1@Minv@J1.T
+        # A1[:,6:] = J1@Minv@J1.T
         A2[:,:6] = J2@Minv
-        A2[:,6:] = J2@Minv@J1.T
+        # A2[:,6:] = J2@Minv@J1.T
         A4[:,:6] = J4@Minv
-        A4[:,6:] = J4@Minv@J1.T
+        # A4[:,6:] = J4@Minv@J1.T
         H1 = A1.T@W1@A1
         H2 = A2.T@W2@A2
         H4 = A4.T@W4@A4
@@ -133,7 +134,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         quat_d_ee = np.array([ 0.631, 0.009,-0.019,-0.775])
         angvel = np.zeros(3)
         mujoco.mju_subQuat(angvel, data.body(ee_id).xquat, quat_d_ee)
-        r4 = (A4[:,:6]@h1 + angvel)@W4@A4
+        r4 = (A4[:,:6]@h1 + Korient*angvel)@W4@A4
 
         g = r1 + r2 + r4
 
