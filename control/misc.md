@@ -10,6 +10,7 @@ https://github.com/robot-descriptions/robot_descriptions.py#arms
 (equality)[https://mujoco.readthedocs.io/en/stable/XMLreference.html#equality-connect]
 (option)[https://mujoco.readthedocs.io/en/stable/XMLreference.html#option]
 (solver parameters)[https://mujoco.readthedocs.io/en/stable/modeling.html#solver-parameters]
+(functions)[https://mujoco.readthedocs.io/en/stable/APIreference/APIfunctions.html]
 
 # ProxQP links
 https://github.com/Simple-Robotics/proxsuite/tree/main/examples/python
