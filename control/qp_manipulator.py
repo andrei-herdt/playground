@@ -17,14 +17,14 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
 # model = load_robot_description("gen3_mj_description")
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 model = mujoco.MjModel.from_xml_path(
-    '3dof.xml')
+    '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+# model = mujoco.MjModel.from_xml_path(
+#     '3dof.xml')
 data = mujoco.MjData(model)
 #
 # Get the center of mass of the body
-ee_id = model.body('base_link').id
+ee_id = model.body('bracelet_link').id
 ee_com = data.subtree_com[ee_id]
 
 nu = model.nu  # Alias for the number of actuators.
@@ -55,16 +55,15 @@ A2 = np.zeros((nu, nu+nforce))
 A4 = np.zeros((3, nu+nforce))
 
 # Task weights
-# W1 = 10*np.identity(3)
-# W2 = 1*np.identity(nu)
-# W3 = .01*np.identity(nu+nforce)
-W1 = 0*np.identity(3)
-W2 = 0*np.identity(nu)
-W3 = 0*np.identity(nu+nforce)
-W4 = 1*np.identity(3)
+W1 = 10*np.identity(3)
+W2 = 1*np.identity(nu)
+W3 = .01*np.identity(nu+nforce)
+W4 = 10*np.identity(3)
 
-# Constants
+# References
 x_c_d = data.subtree_com[0].copy()
+x_c_d[0] = x_c_d[0]+0.5
+x_c_d[2] = 0.1
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
 
@@ -72,7 +71,7 @@ quat_d_ee = np.array([ 1, 0, 0, 0])
 Kp_c = 1000
 Kd_c = 100
 Kp_q = 0
-Kd_q = 1
+Kd_q = 100
 Kp_r = 1000
 Kd_r = 100
  
@@ -85,7 +84,7 @@ def ddotq_d(p, v):
 def ddotR_d(p, v): 
     angerr = np.zeros(3)
     mujoco.mju_subQuat(angerr, p, quat_d_ee)
-    return -Kp_r * angerr - Kd_r * (v - np.zeros(nu)) 
+    return -Kp_r * angerr - Kd_r * (v - np.zeros(3)) 
 
 mujoco.mj_fullM(model, M, data.qM)
 
@@ -98,8 +97,8 @@ b = None
 C = None
 u = None
 l = None
-l_box = -np.ones(n) * 1.0e2
-u_box = np.ones(n) * 1.0e2
+l_box = -np.ones(n) * 1.0e3
+u_box = np.ones(n) * 1.0e3
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -108,9 +107,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
 
+        # Get Jacobians
+        mujoco.mj_jacSubtreeCom(model, data, Je, ee_id)
+        mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
+
         # Get state
         dx_c = data.subtree_linvel[ee_id]
         x_c = data.subtree_com[ee_id]
+        angvel = Jebr@data.qvel
 
         # Get the mass matrix and the bias term
         mujoco.mj_fullM(model, M, data.qM)
@@ -119,8 +123,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M1 = M[nq0:nq0+nu,nq0:nq0+nu]
         h1 = h[nq0:nq0+nu]
         Minv = np.linalg.inv(M1)
-        mujoco.mj_jacSubtreeCom(model, data, Je, ee_id)
-        mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
         J1 = Je[:,:nu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,:nu]
@@ -139,8 +141,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         r1 = (A1[:,:nu]@h1 + ddotx_c_d(x_c, dx_c))@W1@A1
         r2 = (A2[:,:nu]@h1 + ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu]))@W2@A2
-
-        angvel = Jebr@data.qvel
         r4 = (A4[:,:nu]@h1 + ddotR_d(data.body(ee_id).xquat, angvel))@W4@A4
 
         g = r1 + r2 + r4
