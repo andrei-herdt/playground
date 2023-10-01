@@ -22,10 +22,10 @@ model = mujoco.MjModel.from_xml_path(
 # model = mujoco.MjModel.from_xml_path(
 #     '3dof.xml')
 data = mujoco.MjData(model)
+mujoco.mj_resetDataKeyframe(model, data, 0)
 #
 # Get the center of mass of the body
 ee_id = model.body('bracelet_link').id
-ee_com = data.subtree_com[ee_id]
 
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
@@ -35,9 +35,6 @@ pmapu = [*range(nq0,nq0+nu, 1)]
 vmapu = [*range(nv0,nv0+nu, 1)]
 udof = np.ix_(vmapu,vmapu) # Controlled DoFs
 
-# for i in range(nu):
-#     data.qpos[i] = 0.5
-# data.qpos[1] = np.pi/2
 mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
@@ -60,10 +57,10 @@ W2 = 1*np.identity(nu)
 W3 = .01*np.identity(nu+nforce)
 W4 = 10*np.identity(3)
 
+
 # References
-x_c_d = data.subtree_com[0].copy()
-x_c_d[0] = x_c_d[0]+0.5
-x_c_d[2] = 0.1
+x_c_d = data.subtree_com[ee_id].copy()
+# x_c_d[2] = 0.1
 dx_c_d = np.zeros(3)
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
@@ -104,6 +101,7 @@ C = None
 u = None
 l = None
 l_box = -np.ones(n) * 1.0e3
+# l_box[9] = 10
 u_box = np.ones(n) * 1.0e3
 
 sim_start = time.time()
@@ -135,10 +133,10 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # todo: double check J1.T
         A1[:,:nu] = J1@Minv
         A2[:,:nu] = J2@Minv
-        # A1[:,6:] = J1@Minv@J1.T
-        # A2[:,6:] = J2@Minv@J1.T
+        # A1[:,nu:] = J1@Minv@J1.T
+        # A2[:,nu:] = J2@Minv@J1.T
         A4[:,:nu] = J4@Minv
-        # A4[:,6:] = J4@Minv@J1.T
+        # A4[:,nu:] = J4@Minv@J1.T
         H1 = A1.T@W1@A1
         H2 = A2.T@W2@A2
         H4 = A4.T@W4@A4
@@ -159,9 +157,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         tau_d = qp.results.x[:nu]
         force = qp.results.x[nu:nu+nforce]
 
-        print("quat",data.body(ee_id).xquat)
-        print("angvel",angvel)
-        print("taud_d",tau_d)
+        # print("quat",data.body(ee_id).xquat)
+        # print("angvel",angvel)
+        # print("taud_d",tau_d)
+        print(data.qpos)
+        # print(force)
 
         data.ctrl = tau_d
 
