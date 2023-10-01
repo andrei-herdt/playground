@@ -62,19 +62,19 @@ W1 = 0*np.identity(3)
 W2 = 0*np.identity(nu)
 W3 = 0*np.identity(nu+nforce)
 W4 = 1*np.identity(3)
-W4[2] = 0.0
 
 # Constants
 x_c_d = data.subtree_com[0].copy()
 q_d = data.qpos[:nu].copy()
+quat_d_ee = np.array([ 1, 0, 0, 0])
 
 # Task function
 Kp_c = 1000
 Kd_c = 100
 Kp_q = 0
-Kd_q = 10
-
-Korient = 10
+Kd_q = 1
+Kp_r = 1000
+Kd_r = 100
  
 def ddotx_c_d(p, v): 
     return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
@@ -82,7 +82,10 @@ def ddotx_c_d(p, v):
 def ddotq_d(p, v): 
     return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
 
-__import__('pdb').set_trace()
+def ddotR_d(p, v): 
+    angerr = np.zeros(3)
+    mujoco.mju_subQuat(angerr, p, quat_d_ee)
+    return -Kp_r * angerr - Kd_r * (v - np.zeros(nu)) 
 
 mujoco.mj_fullM(model, M, data.qM)
 
@@ -97,11 +100,6 @@ u = None
 l = None
 l_box = -np.ones(n) * 1.0e2
 u_box = np.ones(n) * 1.0e2
-
-mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
-mujoco.mj_jacSubtreeCom(model, data, Je, ee_id)
-
-__import__('pdb').set_trace()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -142,10 +140,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         r1 = (A1[:,:nu]@h1 + ddotx_c_d(x_c, dx_c))@W1@A1
         r2 = (A2[:,:nu]@h1 + ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu]))@W2@A2
 
-        quat_d_ee = np.array([ 1, 0, 0, 0])
-        angvel = np.zeros(3)
-        mujoco.mju_subQuat(angvel, data.body(ee_id).xquat, quat_d_ee)
-        r4 = (A4[:,:nu]@h1 - Korient*angvel)@W4@A4
+        angvel = Jebr@data.qvel
+        r4 = (A4[:,:nu]@h1 + ddotR_d(data.body(ee_id).xquat, angvel))@W4@A4
 
         g = r1 + r2 + r4
 
@@ -155,8 +151,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         tau_d = qp.results.x[:nu]
         force = qp.results.x[nu:nu+nforce]
 
-        print(data.body(ee_id).xquat)
-        print(angvel)
+        print("quat",data.body(ee_id).xquat)
+        print("angvel",angvel)
+        print("taud_d",tau_d)
 
         data.ctrl = tau_d
 
