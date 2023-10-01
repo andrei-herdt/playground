@@ -60,19 +60,19 @@ W4 = 10*np.identity(3)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
-# x_c_d[2] = 0.1
+x_c_d[2] = 0.04
 dx_c_d = np.zeros(3)
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
 
-r = 0.3
+r = 1
 f = 5
 def circular_motion(t):
     return np.array([r*np.cos(f*t), r*np.sin(f*t), 0])
 
 # Task function
-Kp_c = 1000
-Kd_c = 100
+Kp_c = 10000
+Kd_c = 1000
 Kp_q = 0
 Kd_q = 100
 Kp_r = 1000
