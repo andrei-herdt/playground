@@ -64,8 +64,14 @@ W4 = 10*np.identity(3)
 x_c_d = data.subtree_com[0].copy()
 x_c_d[0] = x_c_d[0]+0.5
 x_c_d[2] = 0.1
+dx_c_d = np.zeros(3)
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
+
+r = 0.3
+f = 5
+def circular_motion(t):
+    return np.array([r*np.cos(f*t), r*np.sin(f*t), 0])
 
 # Task function
 Kp_c = 1000
@@ -76,7 +82,7 @@ Kp_r = 1000
 Kd_r = 100
  
 def ddotx_c_d(p, v): 
-    return -Kp_c * (p - x_c_d) - Kd_c * (v - np.zeros(3))
+    return -Kp_c * (p - x_c_d) - Kd_c * (v - dx_c_d)
 
 def ddotq_d(p, v): 
     return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
@@ -139,7 +145,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4 
         Hpinv = np.linalg.pinv(H)
 
-        r1 = (A1[:,:nu]@h1 + ddotx_c_d(x_c, dx_c))@W1@A1
+
+        dx_d = circular_motion(time.time()-start)
+        r1 = (A1[:,:nu]@h1 + ddotx_c_d(x_c, dx_c+dx_d))@W1@A1
         r2 = (A2[:,:nu]@h1 + ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu]))@W2@A2
         r4 = (A4[:,:nu]@h1 + ddotR_d(data.body(ee_id).xquat, angvel))@W4@A4
 
