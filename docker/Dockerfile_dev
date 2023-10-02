@@ -60,3 +60,10 @@ RUN git config --global --add safe.directory /workdir/playground \
 
 # Install proxsuite
 RUN pip3 install proxsuite
+
+# Install browser and xdg-utils
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install \
+    firefox xdg-utils \
+    --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+
