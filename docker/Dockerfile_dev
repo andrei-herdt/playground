@@ -57,3 +57,6 @@ RUN git config --global --add safe.directory /workdir/playground \
 && git config --global user.email "andrei.herdt@gmail.com" \
 && git config --global user.name "Andrei Herdt" \
 && git config --global core.editor vi
+
+# Install proxsuite
+RUN pip3 install proxsuite
