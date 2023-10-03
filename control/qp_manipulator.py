@@ -137,7 +137,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # Define References
         (x_d, v_d) = circular_motion(time.time()-start)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
-        
+        ref2 = ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu])
+        ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
+
         Minv = np.linalg.inv(M1)
         # todo: double check J1.T
         A1[:,:nu] = J1@Minv
@@ -151,10 +153,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         H4 = A4.T@W4@A4
         H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4
 
-
         r1 = (A1[:,:nu]@h1 + ref1)@W1@A1
-        r2 = (A2[:,:nu]@h1 + ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu]))@W2@A2
-        r4 = (A4[:,:nu]@h1 + ddotR_d(data.body(ee_id).xquat, angvel))@W4@A4
+        r2 = (A2[:,:nu]@h1 + ref2)@W2@A2
+        r4 = (A4[:,:nu]@h1 + ref4)@W4@A4
 
         g = r1 + r2 + r4
 
