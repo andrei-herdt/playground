@@ -59,14 +59,14 @@ W4 = 10*np.identity(3)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
-x_c_d[2] = 0.04
+# x_c_d[2] = 0.04
 dx_c_d = np.zeros(3)
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
 
 p0 = x_c_d
 r = .1
-f = 1
+f = 0
 def circular_motion(t):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
@@ -122,8 +122,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_fullM(model, M, data.qM)
         h = data.qfrc_bias
 
-        M1 = M[nq0:nq0+nu,nq0:nq0+nu]
-        h1 = h[nq0:nq0+nu]
+        M1 = M[nv0:,nv0:]
+        h1 = h[nv0:]
 
         J1 = Je[:,:nu]
         J2 = np.eye(nu,nu)
