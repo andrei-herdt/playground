@@ -92,7 +92,6 @@ def ddotR_d(p, v):
     mujoco.mju_subQuat(angerr, p, quat_d_ee)
     return -Kp_r * angerr - Kd_r * (v - np.zeros(3)) 
 
-
 mujoco.mj_fullM(model, M, data.qM)
 
 n = nu + nforce
@@ -125,6 +124,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         M1 = M[nq0:nq0+nu,nq0:nq0+nu]
         h1 = h[nq0:nq0+nu]
+
         J1 = Je[:,:nu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,:nu]
@@ -136,8 +136,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
 
         setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
-        qp1.solve()
         setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
+        qp1.solve()
         qp2.solve()
 
         tau_d = qp2.results.x[:nu]
