@@ -7,7 +7,7 @@ install j
 - [ ] dubious access rights error message in docker
 - [ ] What is the short key for closing buffer
 - [ ] Integrate clangformat into vim
-- [ ] Add xdg-open
+- [ ] Change theme of tmux and vim inside docker conveniently
 
 - [ ] Mount host directory for vim plugins (see overlayfs)
 - [ ] Add surround plugin

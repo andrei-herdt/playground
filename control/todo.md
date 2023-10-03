@@ -1,7 +1,4 @@
-- [ ] 
-
-- [ ] Merge branch into master
-
+- [ ] Set up sparse formulation and compare
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
