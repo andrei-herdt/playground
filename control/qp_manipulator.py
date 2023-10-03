@@ -6,7 +6,6 @@ import mujoco.viewer
 import numpy as np
 import scipy
 
-import proxsuite
 from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import *
@@ -93,20 +92,16 @@ def ddotR_d(p, v):
     mujoco.mju_subQuat(angerr, p, quat_d_ee)
     return -Kp_r * angerr - Kd_r * (v - np.zeros(3)) 
 
+
 mujoco.mj_fullM(model, M, data.qM)
 
 n = nu + nforce
 n_eq = 0
 n_in = 0
 qp = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
-A = None
-b = None
-C = None
-u = None
-l = None
-l_box = -np.ones(n) * 1.0e3
-# l_box[9] = 10
-u_box = np.ones(n) * 1.0e3
+qpproblem = QPProblem()
+qpproblem.l_box = -np.ones(n) * 1.0e3 
+qpproblem.u_box = np.ones(n) * 1.0e3  
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -140,38 +135,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref2 = ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
 
-        Minv = np.linalg.inv(M1)
-        # todo: double check J1.T
-        A1[:,:nu] = J1@Minv
-        A2[:,:nu] = J2@Minv
-        # A1[:,nu:] = J1@Minv@J1.T
-        # A2[:,nu:] = J2@Minv@J1.T
-        A4[:,:nu] = J4@Minv
-        # A4[:,nu:] = J4@Minv@J1.T
-        H1 = A1.T@W1@A1
-        H2 = A2.T@W2@A2
-        H4 = A4.T@W4@A4
-        H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4
-
-        r1 = (A1[:,:nu]@h1 + ref1)@W1@A1
-        r2 = (A2[:,:nu]@h1 + ref2)@W2@A2
-        r4 = (A4[:,:nu]@h1 + ref4)@W4@A4
-
-        g = r1 + r2 + r4
-
-        qp.init(H, -g, A, b, C, l, u, l_box, u_box)
-        # setupQPDense(M, nq0, nu, h, Je, qp)
-
+        setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem)
         qp.solve()
 
         tau_d = qp.results.x[:nu]
         force = qp.results.x[nu:nu+nforce]
 
-        # print("quat",data.body(ee_id).xquat)
-        # print("angvel",angvel)
-        # print("taud_d",tau_d)
-        # print(data.qpos)
-        # print(force)
         print(x_d)
 
         data.ctrl = tau_d

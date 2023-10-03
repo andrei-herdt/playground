@@ -1,6 +1,6 @@
-from dataclasses import dataclass
-
+from dataclasses import dataclass, field
 from typing import List, Tuple
+import proxsuite
 
 
 @dataclass
@@ -50,3 +50,39 @@ def calculateCoMAcc(model, data):
     # Compute com acceleration via:
     # \ddot c = J_c \ddot q_2 + \dot J_c \dot q_2
     return Jc@data.qacc + Jdot@data.qvel
+
+@dataclass
+class QPProblem:
+    A: np.ndarray = None
+    b: np.ndarray = None
+    C: np.ndarray = None
+    l: np.ndarray = None
+    u: np.ndarray = None
+    l_box: np.ndarray = None
+    u_box: np.ndarray = None
+
+def setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
+    Minv = np.linalg.inv(M1)
+    # todo: double check J1.T
+    A1 = np.zeros_like(J1)
+    A2 = np.zeros_like(J2)
+    A4 = np.zeros_like(J4)
+
+    A1[:,:nu] = J1@Minv
+    A2[:,:nu] = J2@Minv
+    # A1[:,nu:] = J1@Minv@J1.T
+    # A2[:,nu:] = J2@Minv@J1.T
+    A4[:,:nu] = J4@Minv
+    # A4[:,nu:] = J4@Minv@J1.T
+    H1 = A1.T@W1@A1
+    H2 = A2.T@W2@A2
+    H4 = A4.T@W4@A4
+    H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4
+
+    r1 = (A1[:,:nu]@h1 + ref1)@W1@A1
+    r2 = (A2[:,:nu]@h1 + ref2)@W2@A2
+    r4 = (A4[:,:nu]@h1 + ref4)@W4@A4
+
+    g = r1 + r2 + r4
+
+    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
