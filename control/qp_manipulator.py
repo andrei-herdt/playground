@@ -98,10 +98,8 @@ mujoco.mj_fullM(model, M, data.qM)
 n = nu + nforce
 n_eq = 0
 n_in = 0
-qp = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
-qpproblem = QPProblem()
-qpproblem.l_box = -np.ones(n) * 1.0e3 
-qpproblem.u_box = np.ones(n) * 1.0e3  
+qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
+qpproblem1 = QPProblem()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -135,13 +133,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref2 = ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
 
-        setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem)
-        qp.solve()
+        setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
+        qp1.solve()
 
-        tau_d = qp.results.x[:nu]
-        force = qp.results.x[nu:nu+nforce]
-
-        print(x_d)
+        tau_d = qp1.results.x[:nu]
+        force = qp1.results.x[nu:nu+nforce]
 
         data.ctrl = tau_d
 
