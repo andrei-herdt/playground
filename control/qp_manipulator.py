@@ -9,7 +9,7 @@ import scipy
 import proxsuite
 from robot_descriptions.loaders.mujoco import load_robot_description
 
-from helpers import Perturbations, get_perturbation, calculateCoMAcc
+from helpers import *
 
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
@@ -65,10 +65,14 @@ dx_c_d = np.zeros(3)
 q_d = data.qpos[:nu].copy()
 quat_d_ee = np.array([ 1, 0, 0, 0])
 
-r = 1
-f = 5
+p0 = x_c_d
+r = .1
+f = 1
 def circular_motion(t):
-    return np.array([r*np.cos(f*t), r*np.sin(f*t), 0])
+    w = 2*np.pi*f
+    p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
+    v_d = np.array([-w*r*np.sin(w*t),w*r*np.cos(w*t),0])
+    return (p_d, v_d)
 
 # Task function
 Kp_c = 10000
@@ -78,8 +82,8 @@ Kd_q = 100
 Kp_r = 1000
 Kd_r = 100
  
-def ddotx_c_d(p, v): 
-    return -Kp_c * (p - x_c_d) - Kd_c * (v - dx_c_d)
+def ddotx_c_d(p, v, p_d, v_d): 
+    return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
 
 def ddotq_d(p, v): 
     return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
@@ -126,10 +130,15 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         M1 = M[nq0:nq0+nu,nq0:nq0+nu]
         h1 = h[nq0:nq0+nu]
-        Minv = np.linalg.inv(M1)
         J1 = Je[:,:nu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,:nu]
+
+        # Define References
+        (x_d, v_d) = circular_motion(time.time()-start)
+        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
+        
+        Minv = np.linalg.inv(M1)
         # todo: double check J1.T
         A1[:,:nu] = J1@Minv
         A2[:,:nu] = J2@Minv
@@ -140,18 +149,18 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         H1 = A1.T@W1@A1
         H2 = A2.T@W2@A2
         H4 = A4.T@W4@A4
-        H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4 
-        Hpinv = np.linalg.pinv(H)
+        H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4
 
 
-        dx_d = circular_motion(time.time()-start)
-        r1 = (A1[:,:nu]@h1 + ddotx_c_d(x_c, dx_c+dx_d))@W1@A1
+        r1 = (A1[:,:nu]@h1 + ref1)@W1@A1
         r2 = (A2[:,:nu]@h1 + ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu]))@W2@A2
         r4 = (A4[:,:nu]@h1 + ddotR_d(data.body(ee_id).xquat, angvel))@W4@A4
 
         g = r1 + r2 + r4
 
         qp.init(H, -g, A, b, C, l, u, l_box, u_box)
+        # setupQPDense(M, nq0, nu, h, Je, qp)
+
         qp.solve()
 
         tau_d = qp.results.x[:nu]
@@ -160,8 +169,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # print("quat",data.body(ee_id).xquat)
         # print("angvel",angvel)
         # print("taud_d",tau_d)
-        print(data.qpos)
+        # print(data.qpos)
         # print(force)
+        print(x_d)
 
         data.ctrl = tau_d
 
