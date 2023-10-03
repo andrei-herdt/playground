@@ -117,7 +117,14 @@ $$
 \begin{align}
 \underset{\tau,\ddot q}{\text{minimise}} & \sum_i\|\ddot x_i - \ddot x_{i,d}\|^2_{W_i}  \\ \text{subject to} \space & \nonumber \\
 & M_2\ddot q + h_2= \tau \\
-& J_i\ddot q + \dot J_i \dot q= \ddot x_i
+& J_i\ddot q + \dot J_i \dot q= \ddot x_i,
+\end{align}
+$$
+although, we still want to substitute the cartesian acceleration and set $\dot J = 0$
+$$
+\begin{align}
+\underset{\tau,\ddot q}{\text{minimise}} & \sum_i\|J_i\ddot q - \ddot x_{i,d}\|^2_{W_i}  \\ \text{subject to} \space & \nonumber \\
+& M_2\ddot q - \tau = -h_2
 \end{align}
 $$
 

@@ -100,6 +100,8 @@ n_eq = 0
 n_in = 0
 qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qpproblem1 = QPProblem()
+qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
+qpproblem2 = QPProblem()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -135,9 +137,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
         qp1.solve()
+        setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
+        qp2.solve()
 
-        tau_d = qp1.results.x[:nu]
-        force = qp1.results.x[nu:nu+nforce]
+        tau_d = qp2.results.x[:nu]
+        force = qp2.results.x[nu:nu+nforce]
 
         data.ctrl = tau_d
 

@@ -86,3 +86,29 @@ def setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforc
     g = r1 + r2 + r4
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
+
+def setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
+    # Assume \tau,\ddot q arrangement
+    H = np.zeros((2*nu, 2*nu))
+    g = np.zeros(2*nu)
+
+    H[nu:2*nu, nu:2*nu] += J1.T@W1@J1
+    H[nu:2*nu, nu:2*nu] += J2.T@W2@J2
+    H[:nu, :nu] += W3
+    H[nu:2*nu, nu:2*nu] += J4.T@W4@J4
+
+    r1 = ref1@W1@J1
+    r2 = ref2@W2@J2
+    r4 = ref4@W4@J4
+
+    g[nu:2*nu] = r1 + r2 + r4
+
+    qpproblem.A = np.zeros((nu, 2*nu))
+    qpproblem.b = np.zeros(nu)
+
+    qpproblem.A[:,nu:2*nu] += M1
+    qpproblem.A[:nu,:nu] += -np.eye(nu,nu)
+    qpproblem.b = -h1
+
+
+    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

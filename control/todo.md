@@ -1,4 +1,4 @@
-- [ ] Set up sparse formulation and compare
+- [ ] Turn the sparse and dense formulations into a test
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
