@@ -1,4 +1,5 @@
-- [ ] Turn the sparse and dense formulations into a test
+- [ ] Adapt controller to floating base
+- [ ] Move kinova model to playground
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
@@ -21,6 +22,7 @@ Equality constraints
   - [ ] Why are torques much larger when activating equality constraints
     - [ ] Relax solver impedance?
 
+- [ ] Turn the sparse and dense formulations into a test
 
 - [ ] Create identic models of humanoid in mujoco and pinocchio
 
