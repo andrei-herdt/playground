@@ -22,7 +22,7 @@ model = mujoco.MjModel.from_xml_path(
 #     '3dof.xml')
 data = mujoco.MjData(model)
 mujoco.mj_resetDataKeyframe(model, data, 0)
-#
+
 # Get the center of mass of the body
 ee_id = model.body('bracelet_link').id
 
@@ -42,6 +42,15 @@ Je = np.zeros((3, nv))
 Jebt = np.zeros((3, nv))
 Jebr = np.zeros((3, nv))
 
+wheel_fl_id = model.site('wheel_fl').id
+Cflt = np.zeros((3, nv))
+Cflr = np.zeros((3, nv))
+mujoco.mj_jacSite(model, data, Cflt, Cflr, wheel_fl_id);
+# wheel_hl_id = model.site('wheel_hl').id
+# wheel_hr_id = model.site('wheel_hr').id
+# wheel_fr_id = model.site('wheel_fr').id
+
+
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
@@ -55,7 +64,6 @@ W1 = 10*np.identity(3)
 W2 = 1*np.identity(nu)
 W3 = .01*np.identity(nu+nforce)
 W4 = 10*np.identity(3)
-
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -101,6 +109,9 @@ qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qpproblem1 = QPProblem()
 qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
 qpproblem2 = QPProblem()
+ncontacts = 1
+qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+qpproblemfull = QPProblem()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -122,8 +133,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_fullM(model, M, data.qM)
         h = data.qfrc_bias
 
-        M1 = M[udof]
-        h1 = h[vmapu]
+        M2 = M[udof]
+        h2 = h[vmapu]
+        M1full = M[:nv0,:]
+        h1full = h[:nv0]
+        M2full = M[nv0:,:]
+        h2full = h[nv0:]
 
         J1 = Je[:,vmapu]
         J2 = np.eye(nu,nu)
@@ -135,13 +150,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
 
-        setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
-        setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
+        setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
+        setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
         qp1.solve()
         qp2.solve()
+        setupQPSparseFull(M1full, M2full, h1full, h2full, Cflt, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        qpfull.solve()
 
         tau_d = qp2.results.x[:nu]
-        force = qp2.results.x[nu:nu+nforce]
+
+        print(qp2.results.x[:nu] - qpfull.results.x[:nu])
 
         data.ctrl = tau_d
 

@@ -61,8 +61,8 @@ class QPProblem:
     l_box: np.ndarray = None
     u_box: np.ndarray = None
 
-def setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
-    Minv = np.linalg.inv(M1)
+def setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
+    Minv = np.linalg.inv(M2)
     # todo: double check J1.T
     A1 = np.zeros_like(J1)
     A2 = np.zeros_like(J2)
@@ -76,15 +76,15 @@ def setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforc
     H4 = A4.T@W4@A4
     H = H1 + H2 + W3[:nu+nforce,:nu+nforce] + H4
 
-    r1 = (A1[:,:nu]@h1 + ref1)@W1@A1
-    r2 = (A2[:,:nu]@h1 + ref2)@W2@A2
-    r4 = (A4[:,:nu]@h1 + ref4)@W4@A4
+    r1 = (A1[:,:nu]@h2 + ref1)@W1@A1
+    r2 = (A2[:,:nu]@h2 + ref2)@W2@A2
+    r4 = (A4[:,:nu]@h2 + ref4)@W4@A4
 
     g = r1 + r2 + r4
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
-def setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
+def setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp, qpproblem):
     # Assume \tau,\ddot q arrangement
     H = np.zeros((2*nu, 2*nu))
     g = np.zeros(2*nu)
@@ -103,8 +103,39 @@ def setupQPSparse(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nfor
     qpproblem.A = np.zeros((nu, 2*nu))
     qpproblem.b = np.zeros(nu)
 
-    qpproblem.A[:,nu:2*nu] += M1
+    qpproblem.A[:,nu:2*nu] += M2
     qpproblem.A[:nu,:nu] += -np.eye(nu,nu)
-    qpproblem.b = -h1
+    qpproblem.b = -h2
+
+    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
+
+def setupQPSparseFull(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, nforce, qp, qpproblem):
+    
+    ntau = nu
+    # Assume arrangement
+    # [tau,ddq_1, ddq_2, lambda] 
+    H = np.zeros((ntau+nu+nv0+nforce, ntau+nu+nv0+nforce))
+    g = np.zeros(ntau+nu+nv0+nforce)
+
+    H[ntau+nv0:ntau+nv0+nu, ntau+nv0:ntau+nv0+nu] += J1.T@W1@J1 # ddq_2
+    H[ntau+nv0:ntau+nv0+nu, ntau+nv0:ntau+nv0+nu] += J2.T@W2@J2 # ddq_2
+    H[:nu, :nu] += W3 # tau
+    H[ntau+nv0:ntau+nv0+nu, ntau+nv0:ntau+nv0+nu] += J4.T@W4@J4 # ddq_2
+
+    r1 = ref1@W1@J1
+    r2 = ref2@W2@J2
+    r4 = ref4@W4@J4
+
+    g[ntau+nv0:ntau+nv0+nu] = r1 + r2 + r4 # ddq_2
+
+    qpproblem.A = np.zeros((nv0+nu, ntau+nu+nv0+nforce))
+    qpproblem.b = np.zeros(nv0+nu)
+
+    qpproblem.A[nv0:,:nu] += -np.eye(nu,nu) # tau
+    qpproblem.A[:nv0,ntau:ntau+nv0+nu] += M1 # ddq
+    qpproblem.A[nv0:,ntau:ntau+nv0+nu] += M2 # ddq
+    qpproblem.A[:,ntau+nv0+nu:] += -C1.T # lambda
+    # qpproblem.A[nv0:,ntau+nv0+nu:] += -C1.T # lambda
+    qpproblem.b[nv0:] = -h2
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
