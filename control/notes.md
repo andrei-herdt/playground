@@ -124,7 +124,15 @@ although, we still want to substitute the cartesian acceleration and set $\dot J
 $$
 \begin{align}
 \underset{\tau,\ddot q}{\text{minimise}} & \sum_i\|J_i\ddot q - \ddot x_{i,d}\|^2_{W_i}  \\ \text{subject to} \space & \nonumber \\
-& M_2\ddot q - \tau = -h_2
+& - \tau + M_2\ddot q  = -h_2
+\end{align}
+$$
+Let's add contact forces:
+$$
+\begin{align}
+\underset{\tau,\ddot q, \lambda}{\text{minimise}} & \sum_i\|J_i\ddot q - \ddot x_{i,d}\|^2_{W_i}  \\ \text{subject to} \space & \nonumber \\
+& + M_0\ddot q -C^T\lambda = -h_0 \\
+& - \tau + M_2\ddot q -C^T\lambda = -h_2
 \end{align}
 $$
 

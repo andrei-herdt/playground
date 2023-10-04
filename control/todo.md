@@ -1,5 +1,7 @@
 - [ ] Adapt controller to floating base
-- [ ] Move kinova model to playground
+- [ ] Move kinova model to playground or fork repo
+- [ ] Can we leave tasks in local frame without acceleration of base
+
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
@@ -36,3 +38,10 @@ robot_mj = load_robot_description("jvrc_mj_description")
 from robot_descriptions.loaders.pinocchio import load_robot_description
 robot_pin = load_robot_description("jvrc_description")
 ```
+
+## Ideas for tests
+- 3dof orientation error
+- manipulator with root stability of tasks
+- manipulator with root tracking accuracy
+- compare force vs no force results
+- compare sparse with dense
