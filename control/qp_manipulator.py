@@ -18,8 +18,7 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 # model = load_robot_description("gen3_mj_description")
 model = mujoco.MjModel.from_xml_path(
     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
-# model = mujoco.MjModel.from_xml_path(
-#     '3dof.xml')
+# model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
@@ -46,10 +45,10 @@ ncontacts = 4
 contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
 Ct = np.zeros((3*len(contacts), nv))
 for idx, name in enumerate(contacts):
-    id = model.site(name).id
+    id = model.body(name).id
     Cflt = np.zeros((3, nv))
     Cflr = np.zeros((3, nv))
-    mujoco.mj_jacSite(model, data, Cflt, Cflr, id);
+    mujoco.mj_jacBody(model, data, Cflt, Cflr, id);
     Ct[3*idx:3*(idx+1), :] = Cflt
 
 M = np.zeros((model.nv, model.nv))
@@ -119,6 +118,7 @@ qpproblemfull.u_box[nv0+2*nu+2] = 0
 qpproblemfull.u_box[nv0+2*nu+5] = 0
 qpproblemfull.u_box[nv0+2*nu+8] = 0
 qpproblemfull.u_box[nv0+2*nu+11] = 0
+
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
