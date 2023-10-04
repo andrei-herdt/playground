@@ -66,7 +66,7 @@ quat_d_ee = data.body(ee_id).xquat.copy()
 
 p0 = x_c_d
 r = 0.1
-f = 1
+f = .1
 def circular_motion(t):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
@@ -122,8 +122,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_fullM(model, M, data.qM)
         h = data.qfrc_bias
 
-        M1 = M[nv0:,nv0:]
-        h1 = h[nv0:]
+        M1 = M[udof]
+        h1 = h[vmapu]
 
         J1 = Je[:,vmapu]
         J2 = np.eye(nu,nu)

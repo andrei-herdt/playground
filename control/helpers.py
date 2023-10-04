@@ -70,10 +70,7 @@ def setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforc
 
     A1[:,:nu] = J1@Minv
     A2[:,:nu] = J2@Minv
-    # A1[:,nu:] = J1@Minv@J1.T
-    # A2[:,nu:] = J2@Minv@J1.T
     A4[:,:nu] = J4@Minv
-    # A4[:,nu:] = J4@Minv@J1.T
     H1 = A1.T@W1@A1
     H2 = A2.T@W2@A2
     H4 = A4.T@W4@A4
