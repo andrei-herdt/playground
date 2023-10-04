@@ -1,8 +1,8 @@
-- [ ] 
+- [ ] Add wheels, compare forces in sim and rigid-body
+- [ ] Adding full ddq in objective?
 - [ ] Adapt controller to floating base
 - [ ] Move kinova model to playground or fork repo
 - [ ] Can we leave tasks in local frame without acceleration of base
-
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
