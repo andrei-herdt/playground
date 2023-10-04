@@ -30,7 +30,7 @@ nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
 nq0 = model.nq - model.nu
 nv0 = model.nv - model.nu
-pmapu = [*range(nq0,nq0+nu, 1)]
+qmapu = [*range(nq0,nq0+nu, 1)]
 vmapu = [*range(nv0,nv0+nu, 1)]
 udof = np.ix_(vmapu,vmapu) # Controlled DoFs
 
@@ -61,12 +61,12 @@ W4 = 10*np.identity(3)
 x_c_d = data.subtree_com[ee_id].copy()
 # x_c_d[2] = 0.04
 dx_c_d = np.zeros(3)
-q_d = data.qpos[nq0:nq0+nu].copy()
+q_d = data.qpos[qmapu].copy()
 quat_d_ee = data.body(ee_id).xquat.copy()
 
 p0 = x_c_d
-r = 0
-f = 0
+r = 0.1
+f = 1
 def circular_motion(t):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
@@ -125,14 +125,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M1 = M[nv0:,nv0:]
         h1 = h[nv0:]
 
-        J1 = Je[:,nv0:nv0+nu]
+        J1 = Je[:,vmapu]
         J2 = np.eye(nu,nu)
-        J4 = Jebr[:,nv0:nv0+nu]
+        J4 = Jebr[:,vmapu]
 
         # Define References
         (x_d, v_d) = circular_motion(time.time()-start)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
-        ref2 = ddotq_d(data.qpos[nq0:nq0+nu], data.qvel[nv0:nv0+nu])
+        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
 
         setupQPDense(M1, J1, J2, J4, W1, W2, W3, W4, h1, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
