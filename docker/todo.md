@@ -1,3 +1,4 @@
+- [ ] Add 
 - [ ] from vim to tmux jump doesn't work
 - [ ] Make lazygit work in docker
 - [ ] In nvim, search function jumps automatically to normal mode when not found, creating havoc

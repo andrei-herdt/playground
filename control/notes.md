@@ -131,7 +131,7 @@ Let's add contact forces:
 $$
 \begin{align}
 \underset{\tau,\ddot q, \lambda}{\text{minimise}} & \sum_i\|J_i\ddot q - \ddot x_{i,d}\|^2_{W_i}  \\ \text{subject to} \space & \nonumber \\
-& + M_0\ddot q -C^T\lambda = -h_0 \\
+& M_1\ddot q -C^T\lambda = -h_1 \\
 & - \tau + M_2\ddot q -C^T\lambda = -h_2
 \end{align}
 $$
