@@ -61,11 +61,11 @@ W4 = 10*np.identity(3)
 x_c_d = data.subtree_com[ee_id].copy()
 # x_c_d[2] = 0.04
 dx_c_d = np.zeros(3)
-q_d = data.qpos[:nu].copy()
-quat_d_ee = np.array([ 1, 0, 0, 0])
+q_d = data.qpos[nq0:nq0+nu].copy()
+quat_d_ee = data.body(ee_id).xquat.copy()
 
 p0 = x_c_d
-r = .1
+r = 0
 f = 0
 def circular_motion(t):
     w = 2*np.pi*f
@@ -114,8 +114,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
 
         # Get state
-        dx_c = data.subtree_linvel[ee_id]
         x_c = data.subtree_com[ee_id]
+        dx_c = data.subtree_linvel[ee_id]
         angvel = Jebr@data.qvel
 
         # Get the mass matrix and the bias term
@@ -125,9 +125,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M1 = M[nv0:,nv0:]
         h1 = h[nv0:]
 
-        J1 = Je[:,:nu]
+        J1 = Je[:,nv0:nv0+nu]
         J2 = np.eye(nu,nu)
-        J4 = Jebr[:,:nu]
+        J4 = Jebr[:,nv0:nv0+nu]
 
         # Define References
         (x_d, v_d) = circular_motion(time.time()-start)
