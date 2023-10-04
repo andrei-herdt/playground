@@ -112,6 +112,10 @@ qpproblem2 = QPProblem()
 ncontacts = 1
 qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 qpproblemfull = QPProblem()
+qpproblemfull.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
+qpproblemfull.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
+# qpproblemfull.l_box[nv0+2*nu+2] = 0
+qpproblemfull.u_box[nv0+2*nu+2] = 0
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -159,7 +163,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         tau_d = qpfull.results.x[:nu]
 
-        print(qp2.results.x[:nu] - qpfull.results.x[:nu])
+        # print(qp2.results.x[:nu] - qpfull.results.x[:nu])
         print('forces:', qpfull.results.x[nu+nv0+nu:])
 
         data.ctrl = tau_d

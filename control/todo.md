@@ -1,3 +1,4 @@
+- [ ] 
 - [ ] Adapt controller to floating base
 - [ ] Move kinova model to playground or fork repo
 - [ ] Can we leave tasks in local frame without acceleration of base
