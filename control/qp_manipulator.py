@@ -17,7 +17,7 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
 # model = load_robot_description("gen3_mj_description")
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+    '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '3dof.xml')
 data = mujoco.MjData(model)
@@ -42,14 +42,15 @@ Je = np.zeros((3, nv))
 Jebt = np.zeros((3, nv))
 Jebr = np.zeros((3, nv))
 
-wheel_fl_id = model.site('wheel_fl').id
-Cflt = np.zeros((3, nv))
-Cflr = np.zeros((3, nv))
-mujoco.mj_jacSite(model, data, Cflt, Cflr, wheel_fl_id);
-# wheel_hl_id = model.site('wheel_hl').id
-# wheel_hr_id = model.site('wheel_hr').id
-# wheel_fr_id = model.site('wheel_fr').id
-
+ncontacts = 4
+contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
+Ct = np.zeros((3*len(contacts), nv))
+for idx, name in enumerate(contacts):
+    id = model.site(name).id
+    Cflt = np.zeros((3, nv))
+    Cflr = np.zeros((3, nv))
+    mujoco.mj_jacSite(model, data, Cflt, Cflr, id);
+    Ct[3*idx:3*(idx+1), :] = Cflt
 
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
@@ -67,14 +68,13 @@ W4 = 10*np.identity(3)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
-# x_c_d[2] = 0.04
 dx_c_d = np.zeros(3)
 q_d = data.qpos[qmapu].copy()
 quat_d_ee = data.body(ee_id).xquat.copy()
 
 p0 = x_c_d
-r = 0.1
-f = .1
+r = 0.0
+f = 0.1
 def circular_motion(t):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
@@ -109,13 +109,16 @@ qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qpproblem1 = QPProblem()
 qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
 qpproblem2 = QPProblem()
-ncontacts = 1
 qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 qpproblemfull = QPProblem()
 qpproblemfull.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
 qpproblemfull.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
-# qpproblemfull.l_box[nv0+2*nu+2] = 0
+
+# Avoid tilting
 qpproblemfull.u_box[nv0+2*nu+2] = 0
+qpproblemfull.u_box[nv0+2*nu+5] = 0
+qpproblemfull.u_box[nv0+2*nu+8] = 0
+qpproblemfull.u_box[nv0+2*nu+11] = 0
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -158,14 +161,15 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
         qp1.solve()
         qp2.solve()
-        setupQPSparseFull(M1full, M2full, h1full, h2full, Cflt, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         qpfull.solve()
 
         tau_d = qpfull.results.x[:nu]
 
-        # print(qp2.results.x[:nu] - qpfull.results.x[:nu])
         print('forces:', qpfull.results.x[nu+nv0+nu:])
+        print(data.cfrc_ext)
 
+        # print('diff:', qpfull.results.x[:nu] - qp2.results.x[:nu])
         data.ctrl = tau_d
 
         mujoco.mj_step(model, data)
