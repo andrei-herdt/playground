@@ -73,7 +73,7 @@ quat_d_ee = data.body(ee_id).xquat.copy()
 
 p0 = x_c_d
 r = 0.0
-f = 0.1
+f = 0.0
 def circular_motion(t):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
@@ -108,17 +108,17 @@ qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qpproblem1 = QPProblem()
 qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
 qpproblem2 = QPProblem()
-qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
 qpproblemfull = QPProblem()
 qpproblemfull.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
 qpproblemfull.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
 
 # Avoid tilting
-qpproblemfull.u_box[nv0+2*nu+2] = 0
-qpproblemfull.u_box[nv0+2*nu+5] = 0
-qpproblemfull.u_box[nv0+2*nu+8] = 0
-qpproblemfull.u_box[nv0+2*nu+11] = 0
-
+idx_fz = [nu+nv0+nu+2,nu+nv0+nu+5,nu+nv0+nu+8,nu+nv0+nu+11]
+qpproblemfull.l_box[idx_fz[0]] = 0
+qpproblemfull.l_box[idx_fz[1]] = 0
+qpproblemfull.l_box[idx_fz[2]] = 0
+qpproblemfull.l_box[idx_fz[3]] = 0
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -159,15 +159,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
         setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
+        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         qp1.solve()
         qp2.solve()
-        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         qpfull.solve()
 
         tau_d = qpfull.results.x[:nu]
 
-        print('forces:', qpfull.results.x[nu+nv0+nu:])
-        print(data.cfrc_ext)
+        # print('forces:', qpfull.results.x[nu+nv0+nu:])
+        # print(sum(qpfull.results.x[idx_fz]))
+        # print("ddq1: ",qpfull.results.x[nu:nu+nv0])
+        # print(data.cfrc_ext)
 
         # print('diff:', qpfull.results.x[:nu] - qp2.results.x[:nu])
         data.ctrl = tau_d
