@@ -157,9 +157,10 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         setupQPSparseFull(M1full, M2full, h1full, h2full, Cflt, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         qpfull.solve()
 
-        tau_d = qp2.results.x[:nu]
+        tau_d = qpfull.results.x[:nu]
 
         print(qp2.results.x[:nu] - qpfull.results.x[:nu])
+        print('forces:', qpfull.results.x[nu+nv0+nu:])
 
         data.ctrl = tau_d
 
