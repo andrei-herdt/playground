@@ -1,3 +1,4 @@
+- [ ] refactor main code
 - [ ] Add wheels, compare forces in sim and rigid-body
 - [ ] Adding full ddq in objective?
 - [ ] Adapt controller to floating base
