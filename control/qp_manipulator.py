@@ -54,22 +54,27 @@ for idx, name in enumerate(contacts):
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
-nforce = 0
-A1 = np.zeros((3, nu+nforce))
-A2 = np.zeros((nu, nu+nforce))
-A4 = np.zeros((3, nu+nforce))
+A1 = np.zeros((3, nu))
+A2 = np.zeros((nu, nu))
+A4 = np.zeros((3, nu))
 
 # Task weights
+w2 = 1
 W1 = 10*np.identity(3)
-W2 = 1*np.identity(nu)
-W3 = .01*np.identity(nu+nforce)
+W2 = w2*np.identity(nu)
+W3 = .01*np.identity(nu)
 W4 = 10*np.identity(3)
+W2full = w2*np.identity(nu+nv0)
+W2full[:6, :6] = 1000 * np.identity(6)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
 dx_c_d = np.zeros(3)
-q_d = data.qpos[qmapu].copy()
+q2_d = data.qpos[qmapu].copy()
 quat_d_ee = data.body(ee_id).xquat.copy()
+root_id = model.body('wheel_base').id
+pos_d_root = data.body(root_id).xpos.copy()
+quat_d_root = data.body(root_id).xquat.copy()
 
 p0 = x_c_d
 r = 0.0
@@ -92,7 +97,18 @@ def ddotx_c_d(p, v, p_d, v_d):
     return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
 
 def ddotq_d(p, v): 
-    return -Kp_q * (p - q_d) - Kd_q * (v - np.zeros(nu)) 
+    return -Kp_q * (p - q2_d) - Kd_q * (v - np.zeros(nu)) 
+
+def ddotq_d_full(p, v): 
+    angerr = np.zeros(3)
+    ang = p[3:7]
+    mujoco.mju_subQuat(angerr, ang, quat_d_root)
+    p_err = np.zeros_like(v)
+    p_err[:3] = (p[:3]-pos_d_root)
+    p_err[3:6] = angerr
+    p_err[6:] = q2_d
+
+    return -Kp_q * p_err - Kd_q * (v - np.zeros(nu+nv0)) 
 
 def ddotR_d(p, v): 
     angerr = np.zeros(3)
@@ -101,7 +117,7 @@ def ddotR_d(p, v):
 
 mujoco.mj_fullM(model, M, data.qM)
 
-n = nu + nforce
+n = nu 
 n_eq = 0
 n_in = 0
 qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
@@ -119,6 +135,17 @@ qpproblemfull.l_box[idx_fz[0]] = 0
 qpproblemfull.l_box[idx_fz[1]] = 0
 qpproblemfull.l_box[idx_fz[2]] = 0
 qpproblemfull.l_box[idx_fz[3]] = 0
+
+qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+qpproblemfullfulljac = QPProblem()
+qpproblemfullfulljac.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
+qpproblemfullfulljac.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
+
+# Avoid tilting
+qpproblemfullfulljac.l_box[idx_fz[0]] = 0
+qpproblemfullfulljac.l_box[idx_fz[1]] = 0
+qpproblemfullfulljac.l_box[idx_fz[2]] = 0
+qpproblemfullfulljac.l_box[idx_fz[3]] = 0
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -150,31 +177,32 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J1 = Je[:,vmapu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,vmapu]
+        J1full = Je
+        J4full = Jebr
+        J2full = np.eye(nu+nv0,nu+nv0)
 
         # Define References
         (x_d, v_d) = circular_motion(time.time()-start)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
+        ref2full = ddotq_d_full(data.qpos, data.qvel)
 
-        setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp1, qpproblem1)
-        setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, nforce, qp2, qpproblem2)
+        setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
+        setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
         setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, J1full, J2full, J4full, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         qp1.solve()
         qp2.solve()
         qpfull.solve()
+        qpfullfulljac.solve()
 
-        tau_d = qpfull.results.x[:nu]
+        tau_d = qpfullfulljac.results.x[:nu]
 
-        # print('forces:', qpfull.results.x[nu+nv0+nu:])
-        # print(sum(qpfull.results.x[idx_fz]))
-        # print("ddq1: ",qpfull.results.x[nu:nu+nv0])
-        # print(data.cfrc_ext)
-
-        # print('diff:', qpfull.results.x[:nu] - qp2.results.x[:nu])
         data.ctrl = tau_d
 
         mujoco.mj_step(model, data)
+        print(qpfullfulljac.results.x - qpfull.results.x)
 
         viewer.sync()
 

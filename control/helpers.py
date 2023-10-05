@@ -140,3 +140,34 @@ def setupQPSparseFull(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref1, ref2
     qpproblem.A[nv0+nu:nv0+nu+nv0,ntau:ntau+nv0] += np.eye(nv0,nv0) # tau
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
+
+def setupQPSparseFullFullJac(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, nforce, qp, qpproblem):
+    
+    ntau = nu
+    # Assume arrangement
+    # [tau,ddq_1, ddq_2, lambda] 
+    H = np.zeros((ntau+nu+nv0+nforce, ntau+nu+nv0+nforce))
+    g = np.zeros(ntau+nu+nv0+nforce)
+
+    H[:nu, :nu] += W3 # tau
+    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J1.T@W1@J1 # ddq_2
+    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J2.T@W2@J2 # ddq_2
+    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J4.T@W4@J4 # ddq_2
+
+    r1 = ref1@W1@J1
+    r2 = ref2@W2@J2
+    r4 = ref4@W4@J4
+
+    g[ntau:ntau+nv0+nu] += r1 + r2 + r4 # ddq
+
+    qpproblem.A = np.zeros((nv0+nu, ntau+nu+nv0+nforce))
+    qpproblem.b = np.zeros(nv0+nu)
+
+    qpproblem.A[nv0:nv0+nu,0:ntau] += -np.eye(ntau,ntau) # tau
+    qpproblem.A[0:nv0,ntau:ntau+nv0+nu] += M1 # ddq
+    qpproblem.A[nv0:nv0+nu,ntau:ntau+nv0+nu] += M2 # ddq
+    qpproblem.b[0:nv0] += -h1
+    qpproblem.b[nv0:nv0+nu] += -h2
+    qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
+
+    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
