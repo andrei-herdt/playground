@@ -33,6 +33,9 @@ Equality constraints
 
 General:
   - [ ] Why does the joint task make the conditioning worse? It is the mass matrix.
+
+
+- [ ] Try unity plugin
 ```python
 from robot_descriptions.loaders.mujoco import load_robot_description
 robot_mj = load_robot_description("jvrc_mj_description")
