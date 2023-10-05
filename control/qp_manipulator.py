@@ -16,10 +16,13 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
 # model = load_robot_description("gen3_mj_description")
+# model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+    '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
+
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Get the center of mass of the body
@@ -65,7 +68,7 @@ W2 = w2*np.identity(nu)
 W3 = .01*np.identity(nu)
 W4 = 10*np.identity(3)
 W2full = w2*np.identity(nu+nv0)
-W2full[:6, :6] = 1000 * np.identity(6)
+W2full[:6, :6] = 10 * np.identity(6)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -76,10 +79,7 @@ root_id = model.body('wheel_base').id
 pos_d_root = data.body(root_id).xpos.copy()
 quat_d_root = data.body(root_id).xquat.copy()
 
-p0 = x_c_d
-r = 0.0
-f = 0.0
-def circular_motion(t):
+def circular_motion(t, p0, r, f):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
     v_d = np.array([-w*r*np.sin(w*t),w*r*np.cos(w*t),0])
@@ -99,16 +99,17 @@ def ddotx_c_d(p, v, p_d, v_d):
 def ddotq_d(p, v): 
     return -Kp_q * (p - q2_d) - Kd_q * (v - np.zeros(nu)) 
 
-def ddotq_d_full(p, v): 
+def ddotq_d_full(p, v, p_delta, v_delta): 
     angerr = np.zeros(3)
     ang = p[3:7]
     mujoco.mju_subQuat(angerr, ang, quat_d_root)
     p_err = np.zeros_like(v)
-    p_err[:3] = (p[:3]-pos_d_root)
+    p_err[:3] = (p[:3]-pos_d_root - p_delta)
     p_err[3:6] = angerr
     p_err[6:] = q2_d
-
-    return -Kp_q * p_err - Kd_q * (v - np.zeros(nu+nv0)) 
+    v_d = np.zeros(nu+nv0)
+    v_d[:3] = v_delta
+    return -Kp_q * p_err - Kd_q * (v - v_d) 
 
 def ddotR_d(p, v): 
     angerr = np.zeros(3)
@@ -182,11 +183,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J2full = np.eye(nu+nv0,nu+nv0)
 
         # Define References
-        (x_d, v_d) = circular_motion(time.time()-start)
+        r = 0.0
+        f = 0.0
+        (x_d, v_d) = circular_motion(time.time()-start, x_c_d, r, f)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        ref2full = ddotq_d_full(data.qpos, data.qvel)
+        r = 0.1
+        f = 0.5
+        (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
+        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
 
         setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
         setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
@@ -202,7 +208,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         data.ctrl = tau_d
 
         mujoco.mj_step(model, data)
-        print(qpfullfulljac.results.x - qpfull.results.x)
+        # print(qpfullfulljac.results.x - qpfull.results.x)
+        # print(data.qpos)
 
         viewer.sync()
 
