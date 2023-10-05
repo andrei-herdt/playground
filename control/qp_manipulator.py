@@ -159,7 +159,7 @@ qpproblemfullfulljac.l_box[idx_fz[1]] = 0
 qpproblemfullfulljac.l_box[idx_fz[2]] = 0
 qpproblemfullfulljac.l_box[idx_fz[3]] = 0
 
-
+# tmp: why is base tilting?
 qpproblemfullfulljac.l_box[nu+2] = 0
 qpproblemfullfulljac.u_box[nu+2] = 0
 qpproblemfullfulljac.l_box[nu+3] = 0
