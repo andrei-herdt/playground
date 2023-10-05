@@ -48,11 +48,22 @@ ncontacts = 4
 contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
 Ct = np.zeros((3*len(contacts), nv))
 for idx, name in enumerate(contacts):
-    id = model.body(name).id
+    id = model.site(name).id
     Cflt = np.zeros((3, nv))
     Cflr = np.zeros((3, nv))
-    mujoco.mj_jacBody(model, data, Cflt, Cflr, id);
+    mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
     Ct[3*idx:3*(idx+1), :] = Cflt
+
+# id = model.geom('wheel_fl_link').id
+# mujoco.mj_jacGeom(model, data, Cflt, Cflr, id);
+# print(Cflt)
+# id = model.site('wheel_fl').id
+# mujoco.mj_jacSite(model, data, Cflt, Cflr, id);
+# print(Cflt)
+# id = model.body('wheel_fl').id
+# mujoco.mj_jacBody(model, data, Cflt, Cflr, id);
+# print(Cflt)
+# __import__('pdb').set_trace()
 
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
@@ -66,9 +77,9 @@ w2 = 1
 W1 = 10*np.identity(3)
 W2 = w2*np.identity(nu)
 W3 = .01*np.identity(nu)
-W4 = 10*np.identity(3)
+W4 = 1*np.identity(3)
 W2full = w2*np.identity(nu+nv0)
-W2full[:6, :6] = 10 * np.identity(6)
+W2full[:6, :6] = 100 * np.identity(6)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -85,7 +96,7 @@ def circular_motion(t, p0, r, f):
     v_d = np.array([-w*r*np.sin(w*t),w*r*np.cos(w*t),0])
     return (p_d, v_d)
 
-# Task function
+# Task functio0000n
 Kp_c = 10000
 Kd_c = 1000
 Kp_q = 0
@@ -148,6 +159,15 @@ qpproblemfullfulljac.l_box[idx_fz[1]] = 0
 qpproblemfullfulljac.l_box[idx_fz[2]] = 0
 qpproblemfullfulljac.l_box[idx_fz[3]] = 0
 
+
+qpproblemfullfulljac.l_box[nu+2] = 0
+qpproblemfullfulljac.u_box[nu+2] = 0
+qpproblemfullfulljac.l_box[nu+3] = 0
+qpproblemfullfulljac.u_box[nu+3] = 0
+qpproblemfullfulljac.l_box[nu+4] = 0
+qpproblemfullfulljac.u_box[nu+4] = 0
+
+__import__('pdb').set_trace()
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
@@ -189,8 +209,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        r = 0.1
-        f = 0.5
+        r = .3
+        f = 0.2
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
         ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
 
@@ -204,12 +224,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         qpfullfulljac.solve()
 
         tau_d = qpfullfulljac.results.x[:nu]
+        print(qpfullfulljac.results.x[nu:nu+6])
 
         data.ctrl = tau_d
 
         mujoco.mj_step(model, data)
-        # print(qpfullfulljac.results.x - qpfull.results.x)
-        # print(data.qpos)
 
         viewer.sync()
 
