@@ -18,15 +18,17 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 # model = load_robot_description("gen3_mj_description")
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+# model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
+    '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
 
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Get the center of mass of the body
-ee_id = model.body('bracelet_link').id
+ee_id = model.body('wheel_fl').id
 
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
@@ -54,17 +56,6 @@ for idx, name in enumerate(contacts):
     mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
     Ct[3*idx:3*(idx+1), :] = Cflt
 
-# id = model.geom('wheel_fl_link').id
-# mujoco.mj_jacGeom(model, data, Cflt, Cflr, id);
-# print(Cflt)
-# id = model.site('wheel_fl').id
-# mujoco.mj_jacSite(model, data, Cflt, Cflr, id);
-# print(Cflt)
-# id = model.body('wheel_fl').id
-# mujoco.mj_jacBody(model, data, Cflt, Cflr, id);
-# print(Cflt)
-# __import__('pdb').set_trace()
-
 M = np.zeros((model.nv, model.nv))
 Minv = np.zeros((model.nv, model.nv))
 
@@ -74,12 +65,12 @@ A4 = np.zeros((3, nu))
 
 # Task weights
 w2 = 1
-W1 = 10*np.identity(3)
-W2 = w2*np.identity(nu)
-W3 = .01*np.identity(nu)
-W4 = 1*np.identity(3)
+W1 = 0*np.identity(3) # EE pos task
+W2 = w2*np.identity(nu) # Joint 
+W3 = 0*np.identity(nu) # Torque
+W4 = 0*np.identity(3) # EE orientation task
 W2full = w2*np.identity(nu+nv0)
-W2full[:6, :6] = 100 * np.identity(6)
+W2full[:6, :6] = 1 * np.identity(6)
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -94,6 +85,11 @@ def circular_motion(t, p0, r, f):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
     v_d = np.array([-w*r*np.sin(w*t),w*r*np.cos(w*t),0])
+    return (p_d, v_d)
+
+def linear_motion(t, p0, v):
+    p_d = np.array(p0+t*v)
+    v_d = np.array(v)
     return (p_d, v_d)
 
 # Task functio0000n
@@ -166,6 +162,12 @@ qpproblemfullfulljac.l_box[nu+3] = 0
 qpproblemfullfulljac.u_box[nu+3] = 0
 qpproblemfullfulljac.l_box[nu+4] = 0
 qpproblemfullfulljac.u_box[nu+4] = 0
+qpproblemfullfulljac.l_box[nu+5] = -5
+qpproblemfullfulljac.u_box[nu+5] = 5
+qpproblemfullfulljac.l_box[nu+0] = -5
+qpproblemfullfulljac.u_box[nu+0] = 5
+qpproblemfullfulljac.l_box[nu+1] = -5
+qpproblemfullfulljac.u_box[nu+1] = 5
 
 __import__('pdb').set_trace()
 sim_start = time.time()
@@ -209,8 +211,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        r = .3
-        f = 0.2
+        r = .2
+        f = 1
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
         ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
 
@@ -224,7 +226,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         qpfullfulljac.solve()
 
         tau_d = qpfullfulljac.results.x[:nu]
-        print(qpfullfulljac.results.x[nu:nu+6])
 
         data.ctrl = tau_d
 
