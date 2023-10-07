@@ -18,17 +18,17 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 # model = load_robot_description("gen3_mj_description")
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
+    '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
+# model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
 
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Get the center of mass of the body
-ee_id = model.body('wheel_fl').id
+ee_id = model.body('ee').id
 
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
@@ -65,12 +65,13 @@ A4 = np.zeros((3, nu))
 
 # Task weights
 w2 = 1
-W1 = 0*np.identity(3) # EE pos task
-W2 = w2*np.identity(nu) # Joint 
-W3 = 0*np.identity(nu) # Torque
-W4 = 0*np.identity(3) # EE orientation task
-W2full = w2*np.identity(nu+nv0)
-W2full[:6, :6] = 1 * np.identity(6)
+W1 = 10*np.identity(3) # EE pos task
+#todo
+W2 = w2*np.identity(nu) # ddq2 
+W3 = 0.01*np.identity(nu) # tau
+W4 = 1*np.identity(3) # EE orientation task
+W2full = w2*np.identity(nv0+nu) # ddq1,ddq2
+W2full[:6, :6] = 10 * np.identity(6) # ddq1
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -101,6 +102,7 @@ Kp_r = 1000
 Kd_r = 100
  
 def ddotx_c_d(p, v, p_d, v_d): 
+    print("p-p_d: ",p-p_d)
     return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
 
 def ddotq_d(p, v): 
@@ -162,14 +164,13 @@ qpproblemfullfulljac.l_box[nu+3] = 0
 qpproblemfullfulljac.u_box[nu+3] = 0
 qpproblemfullfulljac.l_box[nu+4] = 0
 qpproblemfullfulljac.u_box[nu+4] = 0
-qpproblemfullfulljac.l_box[nu+5] = -5
-qpproblemfullfulljac.u_box[nu+5] = 5
-qpproblemfullfulljac.l_box[nu+0] = -5
-qpproblemfullfulljac.u_box[nu+0] = 5
-qpproblemfullfulljac.l_box[nu+1] = -5
-qpproblemfullfulljac.u_box[nu+1] = 5
+# qpproblemfullfulljac.l_box[nu+5] = 0
+# qpproblemfullfulljac.u_box[nu+5] = 0
+# qpproblemfullfulljac.l_box[nu+0] = 0
+# qpproblemfullfulljac.u_box[nu+0] = 0
+# qpproblemfullfulljac.l_box[nu+1] = 0
+# qpproblemfullfulljac.u_box[nu+1] = 0
 
-__import__('pdb').set_trace()
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
@@ -209,10 +210,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         f = 0.0
         (x_d, v_d) = circular_motion(time.time()-start, x_c_d, r, f)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
+        print("ref1: ", ref1)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        r = .2
-        f = 1
+        r = .5
+        f = .6
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
         ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
 
