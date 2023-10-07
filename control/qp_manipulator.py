@@ -18,8 +18,10 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 # model = load_robot_description("gen3_mj_description")
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
+# model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
+    '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
@@ -29,6 +31,7 @@ mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Get the center of mass of the body
 ee_id = model.body('ee').id
+ee_left_id = model.body('ee_left').id
 
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
@@ -43,8 +46,11 @@ mujoco.mj_comPos(model, data)
 
 # Get the Jacobian for the root body (torso) CoM.
 Je = np.zeros((3, nv))
+Je_left = np.zeros((3, nv))
 Jebt = np.zeros((3, nv))
 Jebr = np.zeros((3, nv))
+Jebt_left = np.zeros((3, nv))
+Jebr_left = np.zeros((3, nv))
 
 ncontacts = 4
 contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
@@ -66,26 +72,31 @@ A4 = np.zeros((3, nu))
 # Task weights
 w2 = 1
 W1 = 10*np.identity(3) # EE pos task
+W1_left = 10*np.identity(3) # EE pos task
 #todo
 W2 = w2*np.identity(nu) # ddq2 
 W3 = 0.01*np.identity(nu) # tau
 W4 = 1*np.identity(3) # EE orientation task
+W4_left = 1*np.identity(3) # EE orientation task
 W2full = w2*np.identity(nv0+nu) # ddq1,ddq2
-W2full[:6, :6] = 10 * np.identity(6) # ddq1
+W2full[:6, :6] = 100 * np.identity(6) # ddq1
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
+x_c_d_left = data.subtree_com[ee_left_id].copy()
 dx_c_d = np.zeros(3)
+dx_c_d_left = np.zeros(3)
 q2_d = data.qpos[qmapu].copy()
 quat_d_ee = data.body(ee_id).xquat.copy()
+quat_d_ee_left = data.body(ee_left_id).xquat.copy()
 root_id = model.body('wheel_base').id
 pos_d_root = data.body(root_id).xpos.copy()
 quat_d_root = data.body(root_id).xquat.copy()
 
-def circular_motion(t, p0, r, f):
+def circular_motion(t, p0, r, f, offset=0):
     w = 2*np.pi*f
-    p_d = np.array([p0[0]+r*np.cos(w*t),p0[1]+ r*np.sin(w*t), p0[2]])
-    v_d = np.array([-w*r*np.sin(w*t),w*r*np.cos(w*t),0])
+    p_d = np.array([p0[0]+r*np.cos(w*t+offset),p0[1]+ r*np.sin(w*t+offset), p0[2]])
+    v_d = np.array([-w*r*np.sin(w*t+offset),w*r*np.cos(w*t+offset),0])
     return (p_d, v_d)
 
 def linear_motion(t, p0, v):
@@ -102,7 +113,6 @@ Kp_r = 1000
 Kd_r = 100
  
 def ddotx_c_d(p, v, p_d, v_d): 
-    print("p-p_d: ",p-p_d)
     return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
 
 def ddotq_d(p, v): 
@@ -180,12 +190,18 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # Get Jacobians
         mujoco.mj_jacSubtreeCom(model, data, Je, ee_id)
+        mujoco.mj_jacSubtreeCom(model, data, Je_left, ee_left_id)
         mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
+        mujoco.mj_jacBody(model, data, Jebt_left, Jebr_left, ee_left_id)
 
         # Get state
         x_c = data.subtree_com[ee_id]
         dx_c = data.subtree_linvel[ee_id]
         angvel = Jebr@data.qvel
+
+        x_c_left = data.subtree_com[ee_left_id]
+        dx_c_left = data.subtree_linvel[ee_left_id]
+        angvel_left = Jebr_left@data.qvel
 
         # Get the mass matrix and the bias term
         mujoco.mj_fullM(model, M, data.qM)
@@ -199,32 +215,39 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         h2full = h[nv0:]
 
         J1 = Je[:,vmapu]
+        J1_left = Je_left[:,vmapu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,vmapu]
+        J4_left = Jebr_left[:,vmapu]
         J1full = Je
+        J1full_left = Je_left
         J4full = Jebr
+        J4full_left = Jebr_left
         J2full = np.eye(nu+nv0,nu+nv0)
 
         # Define References
-        r = 0.0
-        f = 0.0
+        r = 0.1
+        f = 0.3
         (x_d, v_d) = circular_motion(time.time()-start, x_c_d, r, f)
         ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
-        print("ref1: ", ref1)
+        (x_d, v_d) = circular_motion(time.time()-start, x_c_d_left, r, f, -np.pi)
+        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
         ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        r = .5
-        f = .6
+        ref4_left = ddotR_d(data.body(ee_left_id).xquat, angvel_left)
+        r = .0
+        f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
         ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
 
         setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
         setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
         setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
-        setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, J1full, J2full, J4full, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        qp1.solve()
-        qp2.solve()
-        qpfull.solve()
+        # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, J1full, J2full, J4full, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, J1full, J1full_left, J2full, J4full, J4full_left, W1, W1_left, W2full, W3, W4, W4_left, ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        # qp1.solve()
+        # qp2.solve()
+        # qpfull.solve()
         qpfullfulljac.solve()
 
         tau_d = qpfullfulljac.results.x[:nu]
