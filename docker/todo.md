@@ -1,4 +1,4 @@
-- [ ] Add 
+- [ ] eval `ssh-agent -s` and ssh-add /root/.ssh/id_ed25519 when opening a new tmux pane
 - [ ] from vim to tmux jump doesn't work
 - [ ] Make lazygit work in docker
 - [ ] In nvim, search function jumps automatically to normal mode when not found, creating havoc
