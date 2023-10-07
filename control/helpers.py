@@ -1,13 +1,35 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple
 import proxsuite
+import mujoco
+import numpy as np
 
+def ddotx_c_d(p, v, p_d, v_d, Kp_c, Kd_c): 
+    return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
+
+def ddotq_d(p, v, q2_d, v2_d, Kp_q, Kd_q): 
+    return -Kp_q * (p - q2_d) - Kd_q * (v - v2_d) 
+
+def ddotq_d_full(p, v, p_delta, v_delta, p_d_root, R_d_root, q2_d, v_d, Kp_q, Kd_q): 
+    angerr = np.zeros(3)
+    ang = p[3:7]
+    mujoco.mju_subQuat(angerr, ang, R_d_root)
+    p_err = np.zeros_like(v)
+    p_err[:3] = (p[:3]-p_d_root - p_delta)
+    p_err[3:6] = angerr
+    p_err[6:] = q2_d
+    v_d[:3] = v_delta
+    return -Kp_q * p_err - Kd_q * (v - v_d) 
+
+def ddotR_d(p, v, R_d_ee, dR_d_ee, Kp_r, Kd_r): 
+    angerr = np.zeros(3)
+    mujoco.mju_subQuat(angerr, p, R_d_ee)
+    return -Kp_r * angerr - Kd_r * (v - dR_d_ee) 
 
 @dataclass
 class Perturbations:
     data: List[Tuple[int, int]]
     npoint: int
-
 
 def get_perturbation(pert, t):
     if pert.npoint >= len(pert.data) or t < pert.data[pert.npoint][0]:
@@ -16,9 +38,6 @@ def get_perturbation(pert, t):
     pert.npoint += 1
 
     return pert.data[pert.npoint-1][1]
-
-import mujoco
-import numpy as np
 
 def calculateCoMAcc(model, data):
     # Calculate 'dot J'

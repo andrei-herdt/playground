@@ -10,6 +10,11 @@ from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import *
 
+# class Task:
+#     Kp:
+#     Kd:
+#     ref:
+
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -23,6 +28,8 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 model = mujoco.MjModel.from_xml_path(
     '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml')
 # model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base_with_deck.xml')
+# model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
@@ -30,9 +37,6 @@ data = mujoco.MjData(model)
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Get the center of mass of the body
-ee_id = model.body('ee').id
-ee_left_id = model.body('ee_left').id
-
 nu = model.nu  # Alias for the number of actuators.
 nv = model.nv  # Shortcut for the number of DoFs.
 nq0 = model.nq - model.nu
@@ -63,7 +67,6 @@ for idx, name in enumerate(contacts):
     Ct[3*idx:3*(idx+1), :] = Cflt
 
 M = np.zeros((model.nv, model.nv))
-Minv = np.zeros((model.nv, model.nv))
 
 A1 = np.zeros((3, nu))
 A2 = np.zeros((nu, nu))
@@ -80,6 +83,11 @@ W4 = 1*np.identity(3) # EE orientation task
 W4_left = 1*np.identity(3) # EE orientation task
 W2full = w2*np.identity(nv0+nu) # ddq1,ddq2
 W2full[:6, :6] = 100 * np.identity(6) # ddq1
+W2full[6, 6] = 10000 # deck joint
+
+# Tasks
+ee_id = model.body('ee').id
+ee_left_id = model.body('ee_left').id
 
 # References
 x_c_d = data.subtree_com[ee_id].copy()
@@ -87,11 +95,11 @@ x_c_d_left = data.subtree_com[ee_left_id].copy()
 dx_c_d = np.zeros(3)
 dx_c_d_left = np.zeros(3)
 q2_d = data.qpos[qmapu].copy()
-quat_d_ee = data.body(ee_id).xquat.copy()
-quat_d_ee_left = data.body(ee_left_id).xquat.copy()
+R_d_ee = data.body(ee_id).xquat.copy()
+R_d_ee_left = data.body(ee_left_id).xquat.copy()
 root_id = model.body('wheel_base').id
-pos_d_root = data.body(root_id).xpos.copy()
-quat_d_root = data.body(root_id).xquat.copy()
+p_d_root = data.body(root_id).xpos.copy()
+R_d_root = data.body(root_id).xquat.copy()
 
 def circular_motion(t, p0, r, f, offset=0):
     w = 2*np.pi*f
@@ -112,29 +120,6 @@ Kd_q = 100
 Kp_r = 1000
 Kd_r = 100
  
-def ddotx_c_d(p, v, p_d, v_d): 
-    return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
-
-def ddotq_d(p, v): 
-    return -Kp_q * (p - q2_d) - Kd_q * (v - np.zeros(nu)) 
-
-def ddotq_d_full(p, v, p_delta, v_delta): 
-    angerr = np.zeros(3)
-    ang = p[3:7]
-    mujoco.mju_subQuat(angerr, ang, quat_d_root)
-    p_err = np.zeros_like(v)
-    p_err[:3] = (p[:3]-pos_d_root - p_delta)
-    p_err[3:6] = angerr
-    p_err[6:] = q2_d
-    v_d = np.zeros(nu+nv0)
-    v_d[:3] = v_delta
-    return -Kp_q * p_err - Kd_q * (v - v_d) 
-
-def ddotR_d(p, v): 
-    angerr = np.zeros(3)
-    mujoco.mju_subQuat(angerr, p, quat_d_ee)
-    return -Kp_r * angerr - Kd_r * (v - np.zeros(3)) 
-
 mujoco.mj_fullM(model, M, data.qM)
 
 n = nu 
@@ -229,16 +214,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         r = 0.1
         f = 0.3
         (x_d, v_d) = circular_motion(time.time()-start, x_c_d, r, f)
-        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d)
+        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d, Kp_c, Kd_c)
         (x_d, v_d) = circular_motion(time.time()-start, x_c_d_left, r, f, -np.pi)
-        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d)
-        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu])
-        ref4 = ddotR_d(data.body(ee_id).xquat, angvel)
-        ref4_left = ddotR_d(data.body(ee_left_id).xquat, angvel_left)
+        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, Kp_c, Kd_c)
+        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], q2_d, np.zeros(nu), Kp_q, Kd_q)
+        ref4 = ddotR_d(data.body(ee_id).xquat, angvel, R_d_ee, np.zeros(3), Kp_r, Kd_r)
+        ref4_left = ddotR_d(data.body(ee_left_id).xquat, angvel_left, R_d_ee_left, np.zeros(3), Kp_r, Kd_r)
         r = .0
         f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
-        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d)
+        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, p_d_root, R_d_root, q2_d, np.zeros(nu+nv0), Kp_q, Kd_q)
 
         setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
         setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
