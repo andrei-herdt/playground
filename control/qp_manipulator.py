@@ -41,14 +41,14 @@ data = mujoco.MjData(model)
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
 # Alias for model properties
-nu = model.nu 
-nv = model.nv  
-nq0 = model.nq - model.nu
-nv0 = model.nv - model.nu
+nu: int = model.nu
+nv: int = model.nv
+nq0: int = model.nq - model.nu
+nv0: int = model.nv - model.nu
 
 # Generate actuator mappings
-qmapu = [*range(nq0, nq0 + nu)]
-vmapu = [*range(nv0, nv0 + nu)]
+qmapu: List[int] = [*range(nq0, nq0 + nu)]
+vmapu: List[int] = [*range(nv0, nv0 + nu)]
 udof = np.ix_(vmapu, vmapu)
 
 mujoco.mj_kinematics(model, data)
@@ -57,12 +57,12 @@ mujoco.mj_comPos(model, data)
 # Jacobians
 Je, Je_left, Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(6))
 
-ncontacts = 4
-contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
+ncontacts: int = 4
+contacts: List[str] = ["wheel_fl", "wheel_hl", "wheel_hr", "wheel_fr"]
 Ct = initialize_zero_array((3 * len(contacts), nv))
 
 for idx, name in enumerate(contacts):
-    id = model.site(name).id
+    id: int = model.site(name).id
     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
     mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
     Ct[3 * idx:3 * (idx + 1), :] = Cflt
@@ -73,47 +73,47 @@ M = initialize_zero_array((nv, nv))
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
 # Task weights
-w2 = 1
-W1 = 10*np.identity(3) # EE pos task
-W1_left = 10*np.identity(3) # EE pos task
-#todo
-W2 = w2*np.identity(nu) # ddq2 
-W3 = 0.01*np.identity(nu) # tau
-W4 = 1*np.identity(3) # EE orientation task
-W4_left = 1*np.identity(3) # EE orientation task
-W2full = w2*np.identity(nv0+nu) # ddq1,ddq2
-W2full[:6, :6] = 100 * np.identity(6) # ddq1
-W2full[6, 6] = 10000 # deck joint
+w2: float = 1
+W1: np.ndarray = 10 * np.identity(3)  # EE pos task
+W1_left: np.ndarray = 10 * np.identity(3)  # EE pos task
+# todo
+W2: np.ndarray = w2 * np.identity(nu)  # ddq2
+W3: np.ndarray = 0.01 * np.identity(nu)  # tau
+W4: np.ndarray = 1 * np.identity(3)  # EE orientation task
+W4_left: np.ndarray = 1 * np.identity(3)  # EE orientation task
+W2full: np.ndarray = w2 * np.identity(nv0 + nu)  # ddq1,ddq2
+W2full[:6, :6] = 100 * np.identity(6)  # ddq1
+W2full[6, 6] = 10000  # deck joint
 
 # Tasks
-ee_id = model.body('ee').id
-ee_left_id = model.body('ee_left').id
+ee_id: int = model.body("ee").id
+ee_left_id: int = model.body("ee_left").id
 
 # References
-x_c_d = data.subtree_com[ee_id].copy()
-x_c_d_left = data.subtree_com[ee_left_id].copy()
-dx_c_d = np.zeros(3)
-dx_c_d_left = np.zeros(3)
-q2_d = data.qpos[qmapu].copy()
-R_d_ee = data.body(ee_id).xquat.copy()
-R_d_ee_left = data.body(ee_left_id).xquat.copy()
-root_id = model.body('wheel_base').id
-p_d_root = data.body(root_id).xpos.copy()
-R_d_root = data.body(root_id).xquat.copy()
+x_c_d: np.ndarray = data.subtree_com[ee_id].copy()
+x_c_d_left: np.ndarray = data.subtree_com[ee_left_id].copy()
+dx_c_d: np.ndarray = np.zeros(3)
+dx_c_d_left: np.ndarray = np.zeros(3)
+q2_d: np.ndarray = data.qpos[qmapu].copy()
+R_d_ee: np.ndarray = data.body(ee_id).xquat.copy()
+R_d_ee_left: np.ndarray = data.body(ee_left_id).xquat.copy()
+root_id: np.ndarray = model.body('wheel_base').id
+p_d_root: np.ndarray = data.body(root_id).xpos.copy()
+R_d_root: np.ndarray = data.body(root_id).xquat.copy()
 
 # Task functio0000n
-Kp_c = 10000
-Kd_c = 1000
-Kp_q = 0
-Kd_q = 100
-Kp_r = 1000
-Kd_r = 100
+Kp_c: float = 10000
+Kd_c: float = 1000
+Kp_q: float = 0
+Kd_q: float = 100
+Kp_r: float = 1000
+Kd_r: float = 100
  
 mujoco.mj_fullM(model, M, data.qM)
 
 n = nu 
-n_eq = 0
-n_in = 0
+n_eq: int = 0
+n_in: int = 0
 qpproblem1 = QPProblem()
 qpproblem2 = QPProblem()
 qpproblemfull = QPProblem()
