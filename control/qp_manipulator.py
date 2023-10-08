@@ -10,11 +10,15 @@ from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import *
 
-# class Task:
-#     Kp:
-#     Kd:
-#     ref:
-
+@dataclass
+class Task:
+    id: int
+    name: str
+    Kp: float
+    Kd: float
+    ref: np.ndarray
+    W: np.ndarray
+    J: np.ndarray
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -36,41 +40,37 @@ data = mujoco.MjData(model)
 
 mujoco.mj_resetDataKeyframe(model, data, 0)
 
-# Get the center of mass of the body
-nu = model.nu  # Alias for the number of actuators.
-nv = model.nv  # Shortcut for the number of DoFs.
+# Alias for model properties
+nu = model.nu 
+nv = model.nv  
 nq0 = model.nq - model.nu
 nv0 = model.nv - model.nu
-qmapu = [*range(nq0,nq0+nu, 1)]
-vmapu = [*range(nv0,nv0+nu, 1)]
-udof = np.ix_(vmapu,vmapu) # Controlled DoFs
+
+# Generate actuator mappings
+qmapu = [*range(nq0, nq0 + nu)]
+vmapu = [*range(nv0, nv0 + nu)]
+udof = np.ix_(vmapu, vmapu)
 
 mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
-# Get the Jacobian for the root body (torso) CoM.
-Je = np.zeros((3, nv))
-Je_left = np.zeros((3, nv))
-Jebt = np.zeros((3, nv))
-Jebr = np.zeros((3, nv))
-Jebt_left = np.zeros((3, nv))
-Jebr_left = np.zeros((3, nv))
+# Jacobians
+Je, Je_left, Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(6))
 
 ncontacts = 4
 contacts = ['wheel_fl','wheel_hl', 'wheel_hr', 'wheel_fr']
-Ct = np.zeros((3*len(contacts), nv))
+Ct = initialize_zero_array((3 * len(contacts), nv))
+
 for idx, name in enumerate(contacts):
     id = model.site(name).id
-    Cflt = np.zeros((3, nv))
-    Cflr = np.zeros((3, nv))
+    Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
     mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
-    Ct[3*idx:3*(idx+1), :] = Cflt
+    Ct[3 * idx:3 * (idx + 1), :] = Cflt
 
-M = np.zeros((model.nv, model.nv))
+M = initialize_zero_array((nv, nv))
 
-A1 = np.zeros((3, nu))
-A2 = np.zeros((nu, nu))
-A4 = np.zeros((3, nu))
+# Initialize task matrices
+A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
 # Task weights
 w2 = 1
@@ -101,17 +101,6 @@ root_id = model.body('wheel_base').id
 p_d_root = data.body(root_id).xpos.copy()
 R_d_root = data.body(root_id).xquat.copy()
 
-def circular_motion(t, p0, r, f, offset=0):
-    w = 2*np.pi*f
-    p_d = np.array([p0[0]+r*np.cos(w*t+offset),p0[1]+ r*np.sin(w*t+offset), p0[2]])
-    v_d = np.array([-w*r*np.sin(w*t+offset),w*r*np.cos(w*t+offset),0])
-    return (p_d, v_d)
-
-def linear_motion(t, p0, v):
-    p_d = np.array(p0+t*v)
-    v_d = np.array(v)
-    return (p_d, v_d)
-
 # Task functio0000n
 Kp_c = 10000
 Kd_c = 1000
@@ -125,46 +114,35 @@ mujoco.mj_fullM(model, M, data.qM)
 n = nu 
 n_eq = 0
 n_in = 0
-qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qpproblem1 = QPProblem()
-qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
 qpproblem2 = QPProblem()
-qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
 qpproblemfull = QPProblem()
-qpproblemfull.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
-qpproblemfull.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
-
-# Avoid tilting
-idx_fz = [nu+nv0+nu+2,nu+nv0+nu+5,nu+nv0+nu+8,nu+nv0+nu+11]
-qpproblemfull.l_box[idx_fz[0]] = 0
-qpproblemfull.l_box[idx_fz[1]] = 0
-qpproblemfull.l_box[idx_fz[2]] = 0
-qpproblemfull.l_box[idx_fz[3]] = 0
-
-qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 qpproblemfullfulljac = QPProblem()
-qpproblemfullfulljac.l_box = -1e8*np.ones(nv0+2*nu+3*ncontacts)
-qpproblemfullfulljac.u_box = +1e8*np.ones(nv0+2*nu+3*ncontacts)
+
+qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
+qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
+qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
+qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+
+# Init box constraints
+l_box, u_box = initialize_box_constraints(nv0 + 2*nu + 3*ncontacts)
+qpproblemfullfulljac.l_box = l_box
+qpproblemfullfulljac.u_box = u_box
+qpproblemfull.l_box = l_box
+qpproblemfull.u_box = u_box
 
 # Avoid tilting
-qpproblemfullfulljac.l_box[idx_fz[0]] = 0
-qpproblemfullfulljac.l_box[idx_fz[1]] = 0
-qpproblemfullfulljac.l_box[idx_fz[2]] = 0
-qpproblemfullfulljac.l_box[idx_fz[3]] = 0
+idx_fz = [nu + nv0 + nu + i for i in [2, 5, 8, 11]]
+for idx in idx_fz:
+    l_box[idx] = 0
 
-# tmp: why is base tilting?
-qpproblemfullfulljac.l_box[nu+2] = 0
-qpproblemfullfulljac.u_box[nu+2] = 0
-qpproblemfullfulljac.l_box[nu+3] = 0
-qpproblemfullfulljac.u_box[nu+3] = 0
-qpproblemfullfulljac.l_box[nu+4] = 0
-qpproblemfullfulljac.u_box[nu+4] = 0
-# qpproblemfullfulljac.l_box[nu+5] = 0
-# qpproblemfullfulljac.u_box[nu+5] = 0
-# qpproblemfullfulljac.l_box[nu+0] = 0
-# qpproblemfullfulljac.u_box[nu+0] = 0
-# qpproblemfullfulljac.l_box[nu+1] = 0
-# qpproblemfullfulljac.u_box[nu+1] = 0
+qpproblemfull.l_box = l_box
+qpproblemfullfulljac.l_box = l_box
+
+# set acc to zero for z,roll,pitch
+for i in range(2, 5):
+    qpproblemfullfulljac.l_box[nu + i] = 0
+    qpproblemfullfulljac.u_box[nu + i] = 0
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:

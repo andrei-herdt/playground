@@ -4,6 +4,27 @@ import proxsuite
 import mujoco
 import numpy as np
 
+def circular_motion(t, p0, r, f, offset=0):
+    w = 2*np.pi*f
+    p_d = np.array([p0[0]+r*np.cos(w*t+offset),p0[1]+ r*np.sin(w*t+offset), p0[2]])
+    v_d = np.array([-w*r*np.sin(w*t+offset),w*r*np.cos(w*t+offset),0])
+    return (p_d, v_d)
+
+def linear_motion(t, p0, v):
+    p_d = np.array(p0+t*v)
+    v_d = np.array(v)
+    return (p_d, v_d)
+
+def initialize_zero_array(shape):
+    """Utility function to initialize a zero array of the given shape."""
+    return np.zeros(shape)
+
+def initialize_box_constraints(size, lower_bound=-1e8, upper_bound=1e8):
+    """Utility function to initialize box constraints."""
+    l_box = np.full(size, lower_bound)
+    u_box = np.full(size, upper_bound)
+    return l_box, u_box
+
 def ddotx_c_d(p, v, p_d, v_d, Kp_c, Kd_c): 
     return -Kp_c * (p - p_d) - Kd_c * (v - v_d)
 
