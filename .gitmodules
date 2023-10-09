@@ -4,3 +4,6 @@
 [submodule "3rdparty/kinova_mj_description"]
 	path = 3rdparty/kinova_mj_description
 	url = https://github.com/andrei-herdt/kinova_mj_description
+[submodule "3rdparty/neovim-config"]
+	path = 3rdparty/neovim-config
+	url = https://github.com/andrei-herdt/neovim-config.git
