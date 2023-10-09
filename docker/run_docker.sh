@@ -174,6 +174,8 @@ if [ -f hosts ]; then
 	done < <(grep -o '^[^#]*' hosts)
 fi
 
+xhost +local:docker
+
 docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $GPUOPT \
 	${NETWORKING} -ti \
 	-v $XSOCK:$XSOCK \

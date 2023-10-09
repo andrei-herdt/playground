@@ -10,11 +10,13 @@ ARG BLD_URDFDOM_URL=https://github.com/ros/urdfdom.git
 ARG BLD_URDFDOM_VERSION=0da4b20675cdbe14b532d484a1c17df85b4e1584
 ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
 ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
-ARG BLD_MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
+#ARG BLD_MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
 ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
 ARG BLD_GIT_LFS=https://github.com/git-lfs/git-lfs/releases/download/v2.9.0/git-lfs-linux-amd64-v2.9.0.tar.gz
 
-FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu20.04
+FROM ubuntu:22.04
+RUN echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/00-docker
+RUN echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/00-docker
 
 ARG BLD_PINOCCHIO_URL
 ARG BLD_PINOCCHIO_VERSION
@@ -56,17 +58,17 @@ RUN cd /root && wget --quiet ${BLD_CMAKE_URL} && tar -xf cmake-${BLD_CMAKE_VERSI
    && cd /root/cmake-${BLD_CMAKE_VERSION} && ./bootstrap && make -j5 && make -j4 install && cd /root && rm -rf /root/cmake-${BLD_CMAKE_VERSION}
 
 # Anaconda 3
-RUN wget --quiet ${BLD_MINICONDA_URL} -O ~/anaconda.sh && \
-    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
-    rm ~/anaconda.sh && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc
+#RUN wget --quiet ${BLD_MINICONDA_URL} -O ~/anaconda.sh && \
+#    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
+#    rm ~/anaconda.sh && \
+#    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+#    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+#    echo "conda activate base" >> ~/.bashrc
 
 # scientific python packages 
-ENV PATH="/opt/conda/bin:$PATH"
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
-RUN . ~/.bashrc && conda activate base && conda install -y numpy scipy pybind11
+#ENV PATH="/opt/conda/bin:$PATH"
+#ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
+#RUN . ~/.bashrc && conda activate base && conda install -y numpy scipy pybind11
 
 # Install boost
 RUN cd /root && wget -q -c ${BLD_BOOST_URL} -O /root/boost.tar.bz2 \
@@ -83,15 +85,20 @@ RUN cd $RH_INSTALLDIR \
         && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
 # Pinocchio
-RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
-RUN pip install meshcat mujoco matplotlib mediapy
+#RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
+RUN apt-get update \
+    && apt-get install \
+	python3 python3-dev python3-pip \
+        --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip3 install meshcat mujoco matplotlib mediapy
 
 
 # tzdata non-interactive
 RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
-  && dpkg-reconfigure --frontend noninteractive tzdata
+  && dpkg-reconfigure --frontend noninteractive tzdata \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Git LFS
 RUN cd /root && wget --quiet ${BLD_GIT_LFS} -O /root/git-lfs.tar.bz2 \

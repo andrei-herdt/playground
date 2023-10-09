@@ -25,8 +25,8 @@ RUN update-alternatives --install /usr/local/bin/vi vi /usr/local/bin/nvim 1 && 
 RUN pip3 install pynvim
 
 # Deno
-ENV DENO_INSTALL="/usr/local"
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+#ENV DENO_INSTALL="/usr/local"
+#RUN curl -fsSL https://deno.land/install.sh | sh
 
 # Map rg to ag
 RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
