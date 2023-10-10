@@ -59,8 +59,6 @@ mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
 # Jacobians
-Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
-
 contacts = tf.get_list_of_contacts()
 ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
@@ -121,6 +119,23 @@ for i in range(2, 5):
     qpproblemfullfulljac.l_box[nu + i] = 0
     qpproblemfullfulljac.u_box[nu + i] = 0
 
+Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
+
+def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
+    jacobians = {}
+    for _, id in ee_ids.items():
+        jacobians[id] = {
+            't': np.zeros(shape),
+            'r': np.zeros(shape)
+        }
+    return jacobians
+
+def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]]):
+    for id, jac in jacobians.items():
+        mujoco.mj_jacBody(model, data, jac['t'], jac['r'], id)
+
+jacs = create_jacobians_dict(ee_ids, (3,nv))
+
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
@@ -128,9 +143,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
 
-        # Get Jacobians
-        mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_ids['ee'])
-        mujoco.mj_jacBody(model, data, Jebt_left, Jebr_left, ee_ids['ee_left'])
+        fill_jacobians_dict(jacs)
 
         # Get state
         x_c = data.subtree_com[ee_ids['ee']]
@@ -153,16 +166,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         h2full = h[nv0:]
 
         # Specific
-        #
-        J1 = Jebt[:,vmapu]
-        J1_left = Jebt_left[:,vmapu]
+        J1 = jacs[ee_ids['ee']]['t'][:,vmapu]
+        J1_left = jacs[ee_ids['ee_left']]['t'][:,vmapu]
+        J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
+        J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
         J2 = np.eye(nu,nu)
-        J4 = Jebr[:,vmapu]
-        J4_left = Jebr_left[:,vmapu]
-        J1full = Jebt
-        J1full_left = Jebt_left
-        J4full = Jebr
-        J4full_left = Jebr_left
         J2full = np.eye(nu+nv0,nu+nv0)
 
         # Define References
@@ -185,8 +193,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         setupQPDense(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
         setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
         setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
-        # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, J1full, J2full, J4full, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, J1full, J1full_left, J2full, J4full, J4full_left, weights['W1'], weights['W1_left'], weights['W2full'], weights['W3'], weights['W4'], weights['W4_left'], ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights['W1'], weights['W1_left'], weights['W2full'], weights['W3'], weights['W4'], weights['W4_left'], ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
