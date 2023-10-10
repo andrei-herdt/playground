@@ -71,25 +71,12 @@ M = initialize_zero_array((nv, nv))
 # Initialize task matrices
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
-# specific
-#
 weights = tf.create_weights(nv0, nu)
-
 ee_names = tf.get_end_effector_names()
 ee_ids = get_ee_body_ids(ee_names, model)
+ref = tf.create_references_dict(data, ee_ids, qmapu)
+gains = tf.create_gains_dict()
 
-ref = create_references_dict(data, ee_ids, qmapu)
-
-# Task function
-Kp_c: float = 10000
-Kd_c: float = 1000
-Kp_q: float = 0
-Kd_q: float = 100
-Kp_r: float = 1000
-Kd_r: float = 100
-#
-# /specific
- 
 for idx, name in enumerate(contacts):
     id: int = model.site(name).id
     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
@@ -185,16 +172,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         r = 0.1
         f = 0.3
         (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d'], r, f)
-        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d, Kp_c, Kd_c)
+        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
         (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d_left'], r, f, -np.pi)
-        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, Kp_c, Kd_c)
-        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), Kp_q, Kd_q)
-        ref4 = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, ref['R_d_ee'], np.zeros(3), Kp_r, Kd_r)
-        ref4_left = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, ref['R_d_ee_left'], np.zeros(3), Kp_r, Kd_r)
+        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
+        ref4 = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+        ref4_left = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
         r = .0
         f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
-        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), Kp_q, Kd_q)
+        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
         #
         # Specific
 

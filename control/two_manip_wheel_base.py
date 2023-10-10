@@ -1,4 +1,33 @@
 import numpy as np
+from typing import Dict, Any
+
+def create_gains_dict() -> Dict[str, float]:
+    """
+    Factory function to generate a gains dictionary.
+
+    Returns:
+    - Dictionary containing the gains.
+    """
+    
+    # Define gains
+    Kp_c: float = 10000
+    Kd_c: float = 1000
+    Kp_q: float = 0
+    Kd_q: float = 100
+    Kp_r: float = 1000
+    Kd_r: float = 100
+    
+    # Store in a dictionary
+    gains_dict = {
+        'Kp_c': Kp_c,
+        'Kd_c': Kd_c,
+        'Kp_q': Kp_q,
+        'Kd_q': Kd_q,
+        'Kp_r': Kp_r,
+        'Kd_r': Kd_r
+    }
+    
+    return gains_dict
 
 def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
     """
@@ -21,9 +50,8 @@ def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
     q2_d: np.ndarray = data.qpos[qmapu].copy()
     R_d_ee: np.ndarray = data.body(ee_ids['ee']).xquat.copy()
     R_d_ee_left: np.ndarray = data.body(ee_ids['ee_left']).xquat.copy()
-    root_id: np.ndarray = model.body('wheel_base').id
-    p_d_root: np.ndarray = data.body(root_id).xpos.copy()
-    R_d_root: np.ndarray = data.body(root_id).xquat.copy()
+    p_d_root: np.ndarray = data.body(ee_ids['wheel_base']).xpos.copy()
+    R_d_root: np.ndarray = data.body(ee_ids['wheel_base']).xquat.copy()
     
     # Store in a dictionary
     references_dict = {
@@ -81,5 +109,5 @@ def get_list_of_contacts():
     return contacts
 
 def get_end_effector_names():
-    names: List[str] = ["ee", "ee_left"]
+    names: List[str] = ["ee", "ee_left", "wheel_base"]
     return names
