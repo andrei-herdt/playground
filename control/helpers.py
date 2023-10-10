@@ -218,7 +218,7 @@ def setupQPSparseFullFullJac(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
-def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, J2, W1, W1_left, W2, W3, W4, W4_left, ref1, ref1_left, ref2, ref4, ref4_left, nv0, nu, nforce, qp, qpproblem):
+def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, J2, weights, ref1, ref1_left, ref2, ref4, ref4_left, nv0, nu, nforce, qp, qpproblem):
     ntau = nu
     # Assume arrangement
     # [tau,ddq_1, ddq_2, lambda] 
@@ -229,6 +229,13 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, J2,
     J1_left = jacs[ee_ids['ee_left']]['t']
     J4 = jacs[ee_ids['ee']]['r']
     J4_left = jacs[ee_ids['ee_left']]['r']
+
+    W1 = weights['W1']
+    W1_left = weights['W1_left']
+    W2 = weights['W2full']
+    W3 = weights['W3']
+    W4 = weights['W4']
+    W4_left = weights['W4_left']
 
     H[:nu, :nu] += W3 # tau
     H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J1.T@W1@J1 # ddq_2
