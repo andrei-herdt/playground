@@ -1,5 +1,45 @@
 import numpy as np
 
+def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
+    """
+    Factory function to generate a references dictionary.
+    
+    Parameters:
+    - data: The data source (needs to have methods like subtree_com, qpos, and body)
+    - ee_ids: Dictionary with keys 'ee' and 'ee_left' mapping to respective IDs.
+    - qmapu: Index or slice for the qpos method of the data source.
+
+    Returns:
+    - Dictionary containing the references.
+    """
+    
+    # Create references
+    x_c_d: np.ndarray = data.subtree_com[ee_ids['ee']].copy()
+    x_c_d_left: np.ndarray = data.subtree_com[ee_ids['ee_left']].copy()
+    dx_c_d: np.ndarray = np.zeros(3)
+    dx_c_d_left: np.ndarray = np.zeros(3)
+    q2_d: np.ndarray = data.qpos[qmapu].copy()
+    R_d_ee: np.ndarray = data.body(ee_ids['ee']).xquat.copy()
+    R_d_ee_left: np.ndarray = data.body(ee_ids['ee_left']).xquat.copy()
+    root_id: np.ndarray = model.body('wheel_base').id
+    p_d_root: np.ndarray = data.body(root_id).xpos.copy()
+    R_d_root: np.ndarray = data.body(root_id).xquat.copy()
+    
+    # Store in a dictionary
+    references_dict = {
+        'x_c_d': x_c_d,
+        'x_c_d_left': x_c_d_left,
+        'dx_c_d': dx_c_d,
+        'dx_c_d_left': dx_c_d_left,
+        'q2_d': q2_d,
+        'R_d_ee': R_d_ee,
+        'R_d_ee_left': R_d_ee_left,
+        'p_d_root': p_d_root,
+        'R_d_root': R_d_root
+    }
+    
+    return references_dict
+
 def create_weights(nv1: int, nu: int) -> dict:
     """
     Factory function to generate weights dictionary.
