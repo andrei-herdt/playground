@@ -61,13 +61,9 @@ mujoco.mj_comPos(model, data)
 # Jacobians
 Je, Je_left, Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(6))
 
-# specific
-#
 contacts = tf.get_list_of_contacts()
 ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
-#
-# /specific
 
 
 M = initialize_zero_array((nv, nv))
@@ -79,18 +75,17 @@ A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 #
 weights = tf.create_weights(nv0, nu)
 
-# Tasks
-ee_id: int = model.body("ee").id
-ee_left_id: int = model.body("ee_left").id
+ee_names = tf.get_end_effector_names()
+ee_ids = get_ee_body_ids(ee_names, model)
 
 # References
-x_c_d: np.ndarray = data.subtree_com[ee_id].copy()
-x_c_d_left: np.ndarray = data.subtree_com[ee_left_id].copy()
+x_c_d: np.ndarray = data.subtree_com[ee_ids['ee']].copy()
+x_c_d_left: np.ndarray = data.subtree_com[ee_ids['ee_left']].copy()
 dx_c_d: np.ndarray = np.zeros(3)
 dx_c_d_left: np.ndarray = np.zeros(3)
 q2_d: np.ndarray = data.qpos[qmapu].copy()
-R_d_ee: np.ndarray = data.body(ee_id).xquat.copy()
-R_d_ee_left: np.ndarray = data.body(ee_left_id).xquat.copy()
+R_d_ee: np.ndarray = data.body(ee_ids['ee']).xquat.copy()
+R_d_ee_left: np.ndarray = data.body(ee_ids['ee_left']).xquat.copy()
 root_id: np.ndarray = model.body('wheel_base').id
 p_d_root: np.ndarray = data.body(root_id).xpos.copy()
 R_d_root: np.ndarray = data.body(root_id).xquat.copy()
@@ -158,18 +153,18 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         step_start = time.time()
 
         # Get Jacobians
-        mujoco.mj_jacSubtreeCom(model, data, Je, ee_id)
-        mujoco.mj_jacSubtreeCom(model, data, Je_left, ee_left_id)
-        mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_id)
-        mujoco.mj_jacBody(model, data, Jebt_left, Jebr_left, ee_left_id)
+        mujoco.mj_jacSubtreeCom(model, data, Je, ee_ids['ee'])
+        mujoco.mj_jacSubtreeCom(model, data, Je_left, ee_ids['ee_left'])
+        mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_ids['ee'])
+        mujoco.mj_jacBody(model, data, Jebt_left, Jebr_left, ee_ids['ee_left'])
 
         # Get state
-        x_c = data.subtree_com[ee_id]
-        dx_c = data.subtree_linvel[ee_id]
+        x_c = data.subtree_com[ee_ids['ee']]
+        dx_c = data.subtree_linvel[ee_ids['ee']]
         angvel = Jebr@data.qvel
 
-        x_c_left = data.subtree_com[ee_left_id]
-        dx_c_left = data.subtree_linvel[ee_left_id]
+        x_c_left = data.subtree_com[ee_ids['ee_left']]
+        dx_c_left = data.subtree_linvel[ee_ids['ee_left']]
         angvel_left = Jebr_left@data.qvel
 
         # Get the mass matrix and the bias term
@@ -204,8 +199,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         (x_d, v_d) = circular_motion(time.time()-start, x_c_d_left, r, f, -np.pi)
         ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, Kp_c, Kd_c)
         ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], q2_d, np.zeros(nu), Kp_q, Kd_q)
-        ref4 = ddotR_d(data.body(ee_id).xquat, angvel, R_d_ee, np.zeros(3), Kp_r, Kd_r)
-        ref4_left = ddotR_d(data.body(ee_left_id).xquat, angvel_left, R_d_ee_left, np.zeros(3), Kp_r, Kd_r)
+        ref4 = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, R_d_ee, np.zeros(3), Kp_r, Kd_r)
+        ref4_left = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, R_d_ee_left, np.zeros(3), Kp_r, Kd_r)
         r = .0
         f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)

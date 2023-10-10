@@ -39,3 +39,7 @@ def create_weights(nv1: int, nu: int) -> dict:
 def get_list_of_contacts():
     contacts: List[str] = ["wheel_fl", "wheel_hl", "wheel_hr", "wheel_fr"]
     return contacts
+
+def get_end_effector_names():
+    names: List[str] = ["ee", "ee_left"]
+    return names

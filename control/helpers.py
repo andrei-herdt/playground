@@ -4,6 +4,13 @@ import proxsuite
 import mujoco
 import numpy as np
 
+# Tasks
+def get_ee_body_ids(names: List[str], model) -> Dict[str, int]:
+    bodies: Dict[str,int] = {}
+    for name in names:
+        bodies[name] = model.body(name).id
+    return bodies
+
 def circular_motion(t, p0, r, f, offset=0):
     w = 2*np.pi*f
     p_d = np.array([p0[0]+r*np.cos(w*t+offset),p0[1]+ r*np.sin(w*t+offset), p0[2]])
