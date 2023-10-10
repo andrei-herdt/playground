@@ -196,7 +196,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, refs['ee'], refs['joints'], refs['ee_R'], nu, 0, qp2, qpproblem2)
         setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], refs['ee'], refs['joints'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, refs['ee'], refs['joints_full'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights, refs['ee'], refs['ee_left'], refs['joints_full'], refs['ee_R'], refs['ee_R_left'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights, refs, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
