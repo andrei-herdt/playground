@@ -136,6 +136,8 @@ def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]]):
 
 jacs = create_jacobians_dict(ee_ids, (3,nv))
 
+refs: Dict[str, np.ndarray] = {}
+
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
@@ -177,24 +179,24 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         r = 0.1
         f = 0.3
         (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d'], r, f)
-        ref1 = ddotx_c_d(x_c, dx_c, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+        refs['ee'] = ddotx_c_d(x_c, dx_c, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
         (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d_left'], r, f, -np.pi)
-        ref1_left = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-        ref2 = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-        ref4 = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-        ref4_left = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+        refs['ee_left'] = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+        refs['joints'] = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
+        refs['ee_R'] = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+        refs['ee_R_left'] = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
         r = .0
         f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
-        ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
+        refs['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
         #
         # Specific
 
-        setupQPDense(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
-        setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
-        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
-        # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights, ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPDense(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, refs['ee'], refs['joints'], refs['ee_R'], nu, 0, qp1, qpproblem1)
+        setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, refs['ee'], refs['joints'], refs['ee_R'], nu, 0, qp2, qpproblem2)
+        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], refs['ee'], refs['joints'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, refs['ee'], refs['joints_full'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights, refs['ee'], refs['ee_left'], refs['joints_full'], refs['ee_R'], refs['ee_R_left'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
