@@ -218,7 +218,7 @@ def setupQPSparseFullFullJac(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
-def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, J2, weights, refs, nv0, nu, nforce, qp, qpproblem):
+def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, weights, refs, nv0, nu, nforce, qp, qpproblem):
     ntau = nu
     # Assume arrangement
     # [tau,ddq_1, ddq_2, lambda] 
@@ -227,6 +227,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, J2,
 
     J1 = jacs[ee_ids['ee']]['t']
     J1_left = jacs[ee_ids['ee_left']]['t']
+    J2 = np.eye(nu+nv0,nu+nv0)
     J4 = jacs[ee_ids['ee']]['r']
     J4_left = jacs[ee_ids['ee_left']]['r']
 

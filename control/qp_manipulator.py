@@ -123,11 +123,13 @@ Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in rang
 
 def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
     jacobians = {}
+    # end effector jacobians
     for _, id in ee_ids.items():
         jacobians[id] = {
             't': np.zeros(shape),
             'r': np.zeros(shape)
         }
+
     return jacobians
 
 def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]]):
@@ -173,7 +175,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
         J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
         J2 = np.eye(nu,nu)
-        J2full = np.eye(nu+nv0,nu+nv0)
 
         # Define References
         r = 0.1
@@ -196,7 +197,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, refs['ee'], refs['joints'], refs['ee_R'], nu, 0, qp2, qpproblem2)
         setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], refs['ee'], refs['joints'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, refs['ee'], refs['joints_full'], refs['ee_R'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, J2full, weights, refs, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, jacs, ee_ids, vmapu, weights, refs, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
