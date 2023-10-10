@@ -270,3 +270,43 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
+
+def get_dynamics(model: Any,                 # type of model should be specified if known
+                 data: Any,                 # type of data should be specified if known
+                 M: np.ndarray,
+                 udof: np.ndarray, 
+                 vmapu: np.ndarray, 
+                 nv0: int) -> Dict[str, np.ndarray]:
+    """
+    Compute the dynamics properties for the given model and data.
+
+    Parameters:
+    - model: The mujoco model.
+    - data: Data associated with the model.
+    - udof: Array of user degrees of freedom.
+    - vmapu: Velocity mapping array.
+    - nv0: Integer specifying the size/limit for the arrays.
+
+    Returns:
+    - Dictionary containing dynamics properties like 'M2', 'h2', etc.
+    """
+
+    # Initialize dictionary to store dynamics properties
+    dyn: Dict[str, np.ndarray] = {}
+
+    # Compute the full mass matrix
+    mujoco.mj_fullM(model, M, data.qM)  # M should be defined or initialized elsewhere
+
+    # Extract bias force
+    h = data.qfrc_bias
+
+    # Update dynamics dictionary with various computed values
+    dyn['M2'] = M[udof]
+    dyn['h2'] = h[vmapu]
+    dyn['M1full'] = M[:nv0,:]
+    dyn['h1full'] = h[:nv0]
+    dyn['M2full'] = M[nv0:,:]
+    dyn['h2full'] = h[nv0:]
+
+    return dyn
+
