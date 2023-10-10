@@ -59,12 +59,11 @@ mujoco.mj_kinematics(model, data)
 mujoco.mj_comPos(model, data)
 
 # Jacobians
-Je, Je_left, Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(6))
+Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
 contacts = tf.get_list_of_contacts()
 ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
-
 
 M = initialize_zero_array((nv, nv))
 
@@ -130,8 +129,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         step_start = time.time()
 
         # Get Jacobians
-        mujoco.mj_jacSubtreeCom(model, data, Je, ee_ids['ee'])
-        mujoco.mj_jacSubtreeCom(model, data, Je_left, ee_ids['ee_left'])
         mujoco.mj_jacBody(model, data, Jebt, Jebr, ee_ids['ee'])
         mujoco.mj_jacBody(model, data, Jebt_left, Jebr_left, ee_ids['ee_left'])
 
@@ -157,13 +154,13 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         # Specific
         #
-        J1 = Je[:,vmapu]
-        J1_left = Je_left[:,vmapu]
+        J1 = Jebt[:,vmapu]
+        J1_left = Jebt_left[:,vmapu]
         J2 = np.eye(nu,nu)
         J4 = Jebr[:,vmapu]
         J4_left = Jebr_left[:,vmapu]
-        J1full = Je
-        J1full_left = Je_left
+        J1full = Jebt
+        J1full_left = Jebt_left
         J4full = Jebr
         J4full_left = Jebr_left
         J2full = np.eye(nu+nv0,nu+nv0)
