@@ -1,9 +1,9 @@
+- [ ] Make work on humanoid
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 
-- [ ] refactor main code
+- [ ] simulation time-dependent, i.e. results differ when pc slows down
 
 Inequality constrain foot
 - [ ] Solve same problem using proxqp
-- [ ] Try to express dynamics as equality constraints
 - [ ] Double check solutions are correct, using qp and linalg.lstsq
   - [ ] Add inequalities
 - [ ] Can we visualize cones?
