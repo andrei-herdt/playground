@@ -10,6 +10,8 @@ from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import *
 
+import two_manip_wheel_base as tf
+
 @dataclass
 class Task:
     id: int
@@ -31,6 +33,8 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(
     '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml')
+# model = mujoco.MjModel.from_xml_path(
+#     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base_with_deck.xml')
 # model = mujoco.MjModel.from_xml_path(
@@ -57,33 +61,23 @@ mujoco.mj_comPos(model, data)
 # Jacobians
 Je, Je_left, Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(6))
 
-ncontacts: int = 4
-contacts: List[str] = ["wheel_fl", "wheel_hl", "wheel_hr", "wheel_fr"]
-Ct = initialize_zero_array((3 * len(contacts), nv))
+# specific
+#
+contacts = tf.get_list_of_contacts()
+ncontacts = len(contacts)
+Ct = initialize_zero_array((3 * ncontacts, nv))
+#
+# /specific
 
-for idx, name in enumerate(contacts):
-    id: int = model.site(name).id
-    Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
-    mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
-    Ct[3 * idx:3 * (idx + 1), :] = Cflt
 
 M = initialize_zero_array((nv, nv))
 
 # Initialize task matrices
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
-# Task weights
-w2: float = 1
-W1: np.ndarray = 10 * np.identity(3)  # EE pos task
-W1_left: np.ndarray = 10 * np.identity(3)  # EE pos task
-# todo
-W2: np.ndarray = w2 * np.identity(nu)  # ddq2
-W3: np.ndarray = 0.01 * np.identity(nu)  # tau
-W4: np.ndarray = 1 * np.identity(3)  # EE orientation task
-W4_left: np.ndarray = 1 * np.identity(3)  # EE orientation task
-W2full: np.ndarray = w2 * np.identity(nv0 + nu)  # ddq1,ddq2
-W2full[:6, :6] = 100 * np.identity(6)  # ddq1
-W2full[6, 6] = 10000  # deck joint
+# specific
+#
+weights = tf.create_weights(nv0, nu)
 
 # Tasks
 ee_id: int = model.body("ee").id
@@ -108,7 +102,15 @@ Kp_q: float = 0
 Kd_q: float = 100
 Kp_r: float = 1000
 Kd_r: float = 100
+#
+# /specific
  
+for idx, name in enumerate(contacts):
+    id: int = model.site(name).id
+    Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
+    mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
+    Ct[3 * idx:3 * (idx + 1), :] = Cflt
+
 mujoco.mj_fullM(model, M, data.qM)
 
 n = nu 
@@ -131,10 +133,14 @@ qpproblemfullfulljac.u_box = u_box
 qpproblemfull.l_box = l_box
 qpproblemfull.u_box = u_box
 
+# Specific
+#
 # Avoid tilting
 idx_fz = [nu + nv0 + nu + i for i in [2, 5, 8, 11]]
 for idx in idx_fz:
     l_box[idx] = 0
+#
+# /specific
 
 qpproblemfull.l_box = l_box
 qpproblemfullfulljac.l_box = l_box
@@ -177,6 +183,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         M2full = M[nv0:,:]
         h2full = h[nv0:]
 
+        # Specific
+        #
         J1 = Je[:,vmapu]
         J1_left = Je_left[:,vmapu]
         J2 = np.eye(nu,nu)
@@ -202,12 +210,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         f = .0
         (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
         ref2full = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, p_d_root, R_d_root, q2_d, np.zeros(nu+nv0), Kp_q, Kd_q)
+        #
+        # Specific
 
-        setupQPDense(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
-        setupQPSparse(M2, J1, J2, J4, W1, W2, W3, W4, h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
-        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, W1, W2, W3, W4, ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        setupQPDense(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp1, qpproblem1)
+        setupQPSparse(M2, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], h2, ref1, ref2, ref4, nu, 0, qp2, qpproblem2)
+        setupQPSparseFull(M1full, M2full, h1full, h2full, Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], ref1, ref2, ref4, nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(M1full, M2full, h1full, h2full, Ct, J1full, J2full, J4full, W1, W2full, W3, W4, ref1, ref2full, ref4, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, J1full, J1full_left, J2full, J4full, J4full_left, W1, W1_left, W2full, W3, W4, W4_left, ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        setupQPSparseFullFullJacTwoArms(M1full, M2full, h1full, h2full, Ct, J1full, J1full_left, J2full, J4full, J4full_left, weights['W1'], weights['W1_left'], weights['W2full'], weights['W3'], weights['W4'], weights['W4_left'], ref1, ref1_left, ref2full, ref4, ref4_left, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
