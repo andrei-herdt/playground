@@ -310,3 +310,26 @@ def get_dynamics(model: Any,                 # type of model should be specified
 
     return dyn
 
+def get_state(data, 
+            ee_ids: Dict[str, int], 
+            jacs: Dict[int, Dict[str, np.ndarray]]) -> Dict[str, Any]:
+    """Retrieve the states for all end effectors and return in a single dictionary.
+
+    Args:
+        data: The simulation data.
+        ee_ids (Dict[str, int]): A dictionary mapping end effector names to their IDs.
+        jacs (Dict[int, Dict[str, np.ndarray]]): A dictionary containing Jacobians for the end effectors.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing state information for all end effectors.
+    """
+    state = {
+        'x_c': data.subtree_com[ee_ids['ee']],
+        'dx_c': data.subtree_linvel[ee_ids['ee']],
+        'angvel': jacs[ee_ids['ee']]['r'] @ data.qvel,
+        'x_c_left': data.subtree_com[ee_ids['ee_left']],
+        'dx_c_left': data.subtree_linvel[ee_ids['ee_left']],
+        'angvel_left': jacs[ee_ids['ee_left']]['r']@data.qvel
+    }
+
+    return state

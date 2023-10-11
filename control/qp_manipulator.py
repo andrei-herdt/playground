@@ -140,12 +140,12 @@ def compute_des_acc(t, ref, gains):
     r = 0.1
     f = 0.3
     (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d'], r, f)
-    des_acc['ee'] = ddotx_c_d(x_c, dx_c, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+    des_acc['ee'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
     (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d_left'], r, f, -np.pi)
-    des_acc['ee_left'] = ddotx_c_d(x_c_left, dx_c_left, x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+    des_acc['ee_left'] = ddotx_c_d(state['x_c_left'], state['dx_c_left'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
     des_acc['joints'] = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-    des_acc['ee_R'] = ddotR_d(data.body(ee_ids['ee']).xquat, angvel, ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    des_acc['ee_R_left'] = ddotR_d(data.body(ee_ids['ee_left']).xquat, angvel_left, ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+    des_acc['ee_R'] = ddotR_d(data.body(ee_ids['ee']).xquat, state['angvel'], ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+    des_acc['ee_R_left'] = ddotR_d(data.body(ee_ids['ee_left']).xquat, state['angvel_left'], ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
     r = .0
     f = .0
     (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
@@ -161,14 +161,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         fill_jacobians_dict(jacs)
 
-        # Get state
-        x_c = data.subtree_com[ee_ids['ee']]
-        dx_c = data.subtree_linvel[ee_ids['ee']]
-        angvel = Jebr@data.qvel
-
-        x_c_left = data.subtree_com[ee_ids['ee_left']]
-        dx_c_left = data.subtree_linvel[ee_ids['ee_left']]
-        angvel_left = Jebr_left@data.qvel
+        state = get_state(data, ee_ids, jacs)
 
         dyn = get_dynamics(model, data, M, udof, vmapu, nv0)
 
