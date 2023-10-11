@@ -134,24 +134,6 @@ def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]]):
 
 jacs = create_jacobians_dict(ee_ids, (3,nv))
 
-des_acc: Dict[str, np.ndarray] = {}
-
-def compute_des_acc(t, ref, gains):
-    r = 0.1
-    f = 0.3
-    (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d'], r, f)
-    des_acc['ee'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    (x_d, v_d) = circular_motion(time.time()-start, ref['x_c_d_left'], r, f, -np.pi)
-    des_acc['ee_left'] = ddotx_c_d(state['x_c_left'], state['dx_c_left'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    des_acc['joints'] = ddotq_d(data.qpos[qmapu], data.qvel[vmapu], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-    des_acc['ee_R'] = ddotR_d(data.body(ee_ids['ee']).xquat, state['angvel'], ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    des_acc['ee_R_left'] = ddotR_d(data.body(ee_ids['ee_left']).xquat, state['angvel_left'], ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    r = .0
-    f = .0
-    (x_d, v_d) = circular_motion(time.time()-start, np.zeros(3), r, f)
-    des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
-    return des_acc
-
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
     # Close the viewer automatically after 30 wall-seconds.
@@ -161,7 +143,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         fill_jacobians_dict(jacs)
 
-        state = get_state(data, ee_ids, jacs)
+        state = get_state(data, ee_ids, jacs, qmapu, vmapu)
 
         dyn = get_dynamics(model, data, M, udof, vmapu, nv0)
 
@@ -170,11 +152,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         J1_left = jacs[ee_ids['ee_left']]['t'][:,vmapu]
         J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
         J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
-        J2 = np.eye(nu,nu)
+        J2 = np.eye(nu, nu)
 
         # Define References
         t = time.time() - start
-        des_acc = compute_des_acc(t, ref, gains)
+        des_acc = compute_des_acc(t, ref, gains, state, data, nu, nv0)
 
         setupQPDense(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp1, qpproblem1)
         setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
