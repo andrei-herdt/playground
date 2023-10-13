@@ -1,6 +1,8 @@
 import numpy as np
 from typing import Dict, Any
 
+xml_model_path: str = '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml'
+
 def create_gains_dict() -> Dict[str, float]:
     """
     Factory function to generate a gains dictionary.
@@ -111,3 +113,33 @@ def get_list_of_contacts():
 def get_end_effector_names():
     names: List[str] = ["ee", "ee_left", "wheel_base"]
     return names
+
+def get_state(data, 
+            ee_ids: Dict[str, int], 
+            jacs: Dict[int, Dict[str, np.ndarray]], 
+            qmapu: np.ndarray, 
+            vmapu: np.ndarray) -> Dict[str, Any]:
+    """Retrieve the states for all end effectors and return in a single dictionary.
+
+    Args:
+        data: The simulation data.
+        ee_ids (Dict[str, int]): A dictionary mapping end effector names to their IDs.
+        jacs (Dict[int, Dict[str, np.ndarray]]): A dictionary containing Jacobians for the end effectors.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing state information for all end effectors.
+    """
+    state = {
+        'x_c': data.subtree_com[ee_ids['ee']],
+        'dx_c': data.subtree_linvel[ee_ids['ee']],
+        'angvel': jacs[ee_ids['ee']]['r'] @ data.qvel,
+        'R_ee': data.body(ee_ids['ee']).xquat,
+        'x_c_left': data.subtree_com[ee_ids['ee_left']],
+        'dx_c_left': data.subtree_linvel[ee_ids['ee_left']],
+        'angvel_left': jacs[ee_ids['ee_left']]['r']@data.qvel,
+        'R_ee_left': data.body(ee_ids['ee_left']).xquat,
+        'q2': data.qpos[qmapu],
+        'v2': data.qvel[vmapu]
+    }
+
+    return state

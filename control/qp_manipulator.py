@@ -11,16 +11,7 @@ from robot_descriptions.loaders.mujoco import load_robot_description
 from helpers import *
 
 import two_manip_wheel_base as tf
-
-@dataclass
-class Task:
-    id: int
-    name: str
-    Kp: float
-    Kd: float
-    ref: np.ndarray
-    W: np.ndarray
-    J: np.ndarray
+# import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -31,8 +22,7 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
-model = mujoco.MjModel.from_xml_path(
-    '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml')
+model = mujoco.MjModel.from_xml_path(tf.xml_model_path)
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 # model = mujoco.MjModel.from_xml_path(
@@ -117,21 +107,6 @@ for i in range(2, 5):
 
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
-def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
-    jacobians = {}
-    # end effector jacobians
-    for _, id in ee_ids.items():
-        jacobians[id] = {
-            't': np.zeros(shape),
-            'r': np.zeros(shape)
-        }
-
-    return jacobians
-
-def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]]):
-    for id, jac in jacobians.items():
-        mujoco.mj_jacBody(model, data, jac['t'], jac['r'], id)
-
 jacs = create_jacobians_dict(ee_ids, (3,nv))
 
 sim_start = time.time()
@@ -141,9 +116,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
 
-        fill_jacobians_dict(jacs)
+        fill_jacobians_dict(jacs, model, data)
 
-        state = get_state(data, ee_ids, jacs, qmapu, vmapu)
+        state = tf.get_state(data, ee_ids, jacs, qmapu, vmapu)
 
         dyn = get_dynamics(model, data, M, udof, vmapu, nv0)
 

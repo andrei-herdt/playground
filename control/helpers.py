@@ -310,36 +310,6 @@ def get_dynamics(model: Any,                 # type of model should be specified
 
     return dyn
 
-def get_state(data, 
-            ee_ids: Dict[str, int], 
-            jacs: Dict[int, Dict[str, np.ndarray]], 
-            qmapu: np.ndarray, 
-            vmapu: np.ndarray) -> Dict[str, Any]:
-    """Retrieve the states for all end effectors and return in a single dictionary.
-
-    Args:
-        data: The simulation data.
-        ee_ids (Dict[str, int]): A dictionary mapping end effector names to their IDs.
-        jacs (Dict[int, Dict[str, np.ndarray]]): A dictionary containing Jacobians for the end effectors.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing state information for all end effectors.
-    """
-    state = {
-        'x_c': data.subtree_com[ee_ids['ee']],
-        'dx_c': data.subtree_linvel[ee_ids['ee']],
-        'angvel': jacs[ee_ids['ee']]['r'] @ data.qvel,
-        'R_ee': data.body(ee_ids['ee']).xquat,
-        'x_c_left': data.subtree_com[ee_ids['ee_left']],
-        'dx_c_left': data.subtree_linvel[ee_ids['ee_left']],
-        'angvel_left': jacs[ee_ids['ee_left']]['r']@data.qvel,
-        'R_ee_left': data.body(ee_ids['ee_left']).xquat,
-        'q2': data.qpos[qmapu],
-        'v2': data.qvel[vmapu]
-    }
-
-    return state
-
 def compute_des_acc(t, ref, gains, state, data, nu, nv0):
     des_acc: Dict[str, np.ndarray] = {}
 
@@ -358,3 +328,17 @@ def compute_des_acc(t, ref, gains, state, data, nu, nv0):
     des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
     return des_acc
 
+def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
+    jacobians = {}
+    # end effector jacobians
+    for _, id in ee_ids.items():
+        jacobians[id] = {
+            't': np.zeros(shape),
+            'r': np.zeros(shape)
+        }
+
+    return jacobians
+
+def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data):
+    for id, jac in jacobians.items():
+        mujoco.mj_jacBody(model, data, jac['t'], jac['r'], id)
