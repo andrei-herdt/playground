@@ -23,6 +23,7 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(tf.xml_model_path)
+model.opt.gravity[2] = 0
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 # model = mujoco.MjModel.from_xml_path(

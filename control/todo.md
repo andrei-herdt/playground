@@ -1,5 +1,5 @@
+- [ ] humanoid in space model
 - [ ] refactor old functions and make sure they still work (CI?)
-- [ ] Make work on humanoid
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 
 - [ ] simulation time-dependent, i.e. results differ when pc slows down
 

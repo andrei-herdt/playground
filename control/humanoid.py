@@ -74,17 +74,17 @@ def create_weights(nv1: int, nu: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    w2: float = 1
-    W1: np.ndarray = 10 * np.identity(3)  # EE pos task
-    W1_left: np.ndarray = 10 * np.identity(3)  # EE pos task
+    w2: float = 0
+    W1: np.ndarray = 0 * np.identity(3)  # EE pos task
     # todo
     W2: np.ndarray = w2 * np.identity(nu)  # ddq2
     W3: np.ndarray = 0.01 * np.identity(nu)  # tau
-    W4: np.ndarray = 1 * np.identity(3)  # EE orientation task
-    W4_left: np.ndarray = 1 * np.identity(3)  # EE orientation task
+    W4: np.ndarray = 0 * np.identity(3)  # EE orientation task
     W2full: np.ndarray = w2 * np.identity(nv1 + nu)  # ddq1,ddq2
     W2full[:nv1, :nv1] = 100 * np.identity(nv1)  # ddq1
     W2full[6, 6] = 10000  # deck joint
+    W2full[:nv1, :nv1] = 0 * np.identity(nv1)  # ddq1
+    W2full[6, 6] = 0  # deck joint
 
     # Create and return the dictionary
     weights_dict = {
