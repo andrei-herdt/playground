@@ -3,6 +3,8 @@ from typing import Dict, Any
 from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotR_d, ddotq_d_full
 
 xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
+key_frame_id: int = 1
+
 def create_gains_dict() -> Dict[str, float]:
     """
     Factory function to generate a gains dictionary.
@@ -12,12 +14,12 @@ def create_gains_dict() -> Dict[str, float]:
     """
     
     # Define gains
-    Kp_c: float = 10000
-    Kd_c: float = 1000
-    Kp_q: float = 0
-    Kd_q: float = 100
-    Kp_r: float = 1000
-    Kd_r: float = 100
+    Kp_c: float = 0
+    Kd_c: float = 0
+    Kp_q: float = 100
+    Kd_q: float = 10
+    Kp_r: float = 0
+    Kd_r: float = 0
     
     # Store in a dictionary
     gains_dict = {
@@ -74,11 +76,11 @@ def create_weights(nv1: int, nu: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    w2: float = 0
+    w2: float = 1
     W1: np.ndarray = 0 * np.identity(3)  # EE pos task
     # todo
     W2: np.ndarray = w2 * np.identity(nu)  # ddq2
-    W3: np.ndarray = 0.01 * np.identity(nu)  # tau
+    W3: np.ndarray = 0.1 * np.identity(nu)  # tau
     W4: np.ndarray = 0 * np.identity(3)  # EE orientation task
     W2full: np.ndarray = w2 * np.identity(nv1 + nu)  # ddq1,ddq2
     W2full[:nv1, :nv1] = 100 * np.identity(nv1)  # ddq1

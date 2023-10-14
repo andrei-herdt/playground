@@ -33,7 +33,8 @@ model.opt.gravity[2] = 0
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = mujoco.MjData(model)
 
-mujoco.mj_resetDataKeyframe(model, data, 0)
+mujoco.mj_resetDataKeyframe(model, data, tf.key_frame_id)
+
 
 # Alias for model properties
 nu: int = model.nu
