@@ -218,58 +218,6 @@ def setupQPSparseFullFullJac(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
-def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, weights, refs, nv0, nu, nforce, qp, qpproblem):
-    ntau = nu
-    # Assume arrangement
-    # [tau,ddq_1, ddq_2, lambda] 
-    H = np.zeros((ntau+nu+nv0+nforce, ntau+nu+nv0+nforce))
-    g = np.zeros(ntau+nu+nv0+nforce)
-
-    J1 = jacs[ee_ids['ee']]['t']
-    J1_left = jacs[ee_ids['ee_left']]['t']
-    J2 = np.eye(nu+nv0,nu+nv0)
-    J4 = jacs[ee_ids['ee']]['r']
-    J4_left = jacs[ee_ids['ee_left']]['r']
-
-    W1 = weights['W1']
-    W1_left = weights['W1_left']
-    W2 = weights['W2full']
-    W3 = weights['W3']
-    W4 = weights['W4']
-    W4_left = weights['W4_left']
-
-    ref1 = refs['ee']
-    ref1_left = refs['ee_left']
-    ref2 = refs['joints_full']
-    ref4 = refs['ee_R']
-    ref4_left = refs['ee_R_left']
-
-    H[:nu, :nu] += W3 # tau
-    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J1.T@W1@J1 # ddq_2
-    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J1_left.T@W1_left@J1_left # ddq_2
-    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J2.T@W2@J2 # ddq_2
-    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J4.T@W4@J4 # ddq_2
-    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J4_left.T@W4_left@J4_left # ddq_2
-
-    r1 = ref1@W1@J1
-    r1_left = ref1_left@W1_left@J1_left
-    r2 = ref2@W2@J2
-    r4 = ref4@W4@J4
-    r4_left = ref4_left@W4_left@J4_left
-
-    g[ntau:ntau+nv0+nu] += r1 + r1_left + r2 + r4 + r4_left # ddq
-
-    qpproblem.A = np.zeros((nv0+nu, ntau+nu+nv0+nforce))
-    qpproblem.b = np.zeros(nv0+nu)
-
-    qpproblem.A[nv0:nv0+nu,0:ntau] += -np.eye(ntau,ntau) # tau
-    qpproblem.A[0:nv0,ntau:ntau+nv0+nu] += M1 # ddq
-    qpproblem.A[nv0:nv0+nu,ntau:ntau+nv0+nu] += M2 # ddq
-    qpproblem.b[0:nv0] += -h1
-    qpproblem.b[nv0:nv0+nu] += -h2
-    qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
-
-    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
 def get_dynamics(model: Any,                 # type of model should be specified if known
                  data: Any,                 # type of data should be specified if known

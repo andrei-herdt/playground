@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Dict, Any
+from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotR_d, ddotq_d_full
 
 xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
 def create_gains_dict() -> Dict[str, float]:
@@ -88,11 +89,9 @@ def create_weights(nv1: int, nu: int) -> dict:
     # Create and return the dictionary
     weights_dict = {
         'W1': W1,
-        'W1_left': W1_left,
         'W2': W2,
         'W3': W3,
         'W4': W4,
-        'W4_left': W4_left,
         'W2full': W2full
     }
     return weights_dict
@@ -124,7 +123,7 @@ def get_state(data,
         'x_c': data.subtree_com[ee_ids['torso']],
         'dx_c': data.subtree_linvel[ee_ids['torso']],
         'angvel': jacs[ee_ids['torso']]['r'] @ data.qvel,
-        'R_ee': data.body(ee_ids['torso']).xquat,
+        'R_torso': data.body(ee_ids['torso']).xquat,
         'q2': data.qpos[qmapu],
         'v2': data.qvel[vmapu]
     }
@@ -137,14 +136,50 @@ def compute_des_acc(t, ref, gains, state, data, nu, nv0):
     r = 0.1
     f = 0.3
     (x_d, v_d) = circular_motion(t, ref['x_c_d'], r, f)
-    des_acc['ee'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    (x_d, v_d) = circular_motion(t, ref['x_c_d_left'], r, f, -np.pi)
-    des_acc['ee_left'] = ddotx_c_d(state['x_c_left'], state['dx_c_left'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+    des_acc['torso'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
     des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-    des_acc['ee_R'] = ddotR_d(state['R_ee'], state['angvel'], ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    des_acc['ee_R_left'] = ddotR_d(state['R_ee_left'], state['angvel_left'], ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
     r = .0
     f = .0
     (x_d, v_d) = circular_motion(t, np.zeros(3), r, f)
     des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
     return des_acc
+
+def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, weights, refs, nv0, nu, nforce, qp, qpproblem):
+    ntau = nu
+    # Assume arrangement
+    # [tau,ddq_1, ddq_2, lambda] 
+    H = np.zeros((ntau+nu+nv0+nforce, ntau+nu+nv0+nforce))
+    g = np.zeros(ntau+nu+nv0+nforce)
+
+    J1 = jacs[ee_ids['torso']]['t']
+    J2 = np.eye(nu+nv0,nu+nv0)
+    J4 = jacs[ee_ids['torso']]['r']
+
+    W1 = weights['W1']
+    W2 = weights['W2full']
+    W3 = weights['W3']
+    W4 = weights['W4']
+
+    ref1 = refs['torso']
+    ref2 = refs['joints_full']
+
+    H[:nu, :nu] += W3 # tau
+    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J1.T@W1@J1 # ddq_2
+    H[ntau:ntau+nv0+nu, ntau:ntau+nv0+nu] += J2.T@W2@J2 # ddq_2
+
+    r1 = ref1@W1@J1
+    r2 = ref2@W2@J2
+
+    g[ntau:ntau+nv0+nu] += r1  + r2 # ddq
+
+    qpproblem.A = np.zeros((nv0+nu, ntau+nu+nv0+nforce))
+    qpproblem.b = np.zeros(nv0+nu)
+
+    qpproblem.A[nv0:nv0+nu,0:ntau] += -np.eye(ntau,ntau) # tau
+    qpproblem.A[0:nv0,ntau:ntau+nv0+nu] += M1 # ddq
+    qpproblem.A[nv0:nv0+nu,ntau:ntau+nv0+nu] += M2 # ddq
+    qpproblem.b[0:nv0] += -h1
+    qpproblem.b[nv0:nv0+nu] += -h2
+    qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
+
+    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

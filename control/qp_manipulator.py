@@ -10,8 +10,8 @@ from robot_descriptions.loaders.mujoco import load_robot_description
 
 from helpers import *
 
-import two_manip_wheel_base as tf
-# import humanoid as tf
+# import two_manip_wheel_base as tf
+import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -137,7 +137,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
         # setupQPSparseFull(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, des_acc['ee'], des_acc['joints_full'], des_acc['ee_R'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
+        tf.setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()
         # qpfull.solve()
