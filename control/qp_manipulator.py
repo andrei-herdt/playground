@@ -123,19 +123,19 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         dyn = get_dynamics(model, data, M, udof, vmapu, nv0)
 
         # Specific
-        J1 = jacs[ee_ids['ee']]['t'][:,vmapu]
-        J1_left = jacs[ee_ids['ee_left']]['t'][:,vmapu]
-        J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
-        J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
-        J2 = np.eye(nu, nu)
+        # J1 = jacs[ee_ids['ee']]['t'][:,vmapu]
+        # J1_left = jacs[ee_ids['ee_left']]['t'][:,vmapu]
+        # J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
+        # J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
+        # J2 = np.eye(nu, nu)
 
         # Define References
         t = time.time() - start
-        des_acc = compute_des_acc(t, ref, gains, state, data, nu, nv0)
+        des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv0)
 
-        setupQPDense(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp1, qpproblem1)
-        setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
-        setupQPSparseFull(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
+        # setupQPDense(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp1, qpproblem1)
+        # setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
+        # setupQPSparseFull(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nv0, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, des_acc['ee'], des_acc['joints_full'], des_acc['ee_R'], nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv0, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()

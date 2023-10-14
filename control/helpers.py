@@ -310,23 +310,6 @@ def get_dynamics(model: Any,                 # type of model should be specified
 
     return dyn
 
-def compute_des_acc(t, ref, gains, state, data, nu, nv0):
-    des_acc: Dict[str, np.ndarray] = {}
-
-    r = 0.1
-    f = 0.3
-    (x_d, v_d) = circular_motion(t, ref['x_c_d'], r, f)
-    des_acc['ee'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    (x_d, v_d) = circular_motion(t, ref['x_c_d_left'], r, f, -np.pi)
-    des_acc['ee_left'] = ddotx_c_d(state['x_c_left'], state['dx_c_left'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-    des_acc['ee_R'] = ddotR_d(state['R_ee'], state['angvel'], ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    des_acc['ee_R_left'] = ddotR_d(state['R_ee_left'], state['angvel_left'], ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-    r = .0
-    f = .0
-    (x_d, v_d) = circular_motion(t, np.zeros(3), r, f)
-    des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv0), gains['Kp_q'], gains['Kd_q'])
-    return des_acc
 
 def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
     jacobians = {}
