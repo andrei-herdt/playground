@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict, Any
-import proxsuite
 import mujoco
 import numpy as np
 

@@ -164,9 +164,9 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     ref2 = refs['joints_full']
     ref5 = refs['joints']
 
-    H[:nu, :nu] += W3 # tau
     H[ntau:ntau+nv1+nu, ntau:ntau+nv1+nu] += J1.T@W1@J1 # ddq_2
     H[ntau:ntau+nv1+nu, ntau:ntau+nv1+nu] += J2.T@W2@J2 # ddq
+    H[:nu, :nu] += W3 # tau
     H[ntau+nv1:ntau+nv1+nu, ntau+nv1:ntau+nv1+nu] += J5.T@W5@J5 # ddq_2
 
     r1 = ref1@W1@J1
@@ -184,6 +184,6 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     qpproblem.A[nv1:nv1+nu,ntau:ntau+nv1+nu] += M2 # ddq
     qpproblem.b[0:nv1] += -h1
     qpproblem.b[nv1:nv1+nu] += -h2
-    qpproblem.A[0:nv1+nu,ntau+nv1+nu:] += -C1.T # lambda
+    # qpproblem.A[0:nv1+nu,ntau+nv1+nu:] += -C1.T # lambda
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

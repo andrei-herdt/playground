@@ -2,14 +2,14 @@ import time
 
 import mujoco
 import mujoco.viewer
-
 import numpy as np
-import scipy
-
-from robot_descriptions.loaders.mujoco import load_robot_description
-
-from helpers import *
-
+from helpers import initialize_zero_array, \
+    get_ee_body_ids, QPProblem, initialize_box_constraints, \
+    create_jacobians_dict, fill_jacobians_dict, Perturbations, \
+    get_dynamics
+import proxsuite
+from typing import List
+#
 # import two_manip_wheel_base as tf
 import humanoid as tf
 
@@ -17,12 +17,12 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
-# model = load_robot_description("gen3_mj_description")
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = mujoco.MjModel.from_xml_path(tf.xml_model_path)
+# model.opt.gravity[2] = 0
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 # model = mujoco.MjModel.from_xml_path(
@@ -51,6 +51,8 @@ mujoco.mj_comPos(model, data)
 
 # Jacobians
 contacts = tf.get_list_of_contacts()
+#tmp
+contacts = []
 ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
 
@@ -84,6 +86,7 @@ qpproblemfullfulljac = QPProblem()
 qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
 qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
+# qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 
 # Init box constraints
@@ -94,9 +97,10 @@ qpproblemfull.l_box = l_box
 qpproblemfull.u_box = u_box
 
 # Avoid tilting
-idx_fz = [nu + nv0 + nu + i for i in [2, 5, 8, 11]]
-for idx in idx_fz:
-    l_box[idx] = 0
+# tmp
+# idx_fz = [nu + nv0 + nu + i for i in [2, 5, 8, 11]]
+# for idx in idx_fz:
+#     l_box[idx] = 0
 
 qpproblemfull.l_box = l_box
 qpproblemfullfulljac.l_box = l_box
@@ -118,9 +122,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         step_start = time.time()
 
         fill_jacobians_dict(jacs, model, data)
-
         state = tf.get_state(data, ee_ids, jacs, qmapu, vmapu)
-
         dyn = get_dynamics(model, data, M, udof, vmapu, nv0)
 
         # Specific
