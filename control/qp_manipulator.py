@@ -2,6 +2,9 @@ import time
 
 import mujoco
 import mujoco.viewer
+from mujoco import MjModel, MjData, \
+    mj_resetDataKeyframe, mj_kinematics, \
+    mj_comPos, mj_jacSite, mj_fullM, mj_step
 import numpy as np
 from helpers import initialize_zero_array, \
     get_ee_body_ids, QPProblem, initialize_box_constraints, \
@@ -21,7 +24,7 @@ pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
-model = mujoco.MjModel.from_xml_path(tf.xml_model_path)
+model = MjModel.from_xml_path(tf.xml_model_path)
 # model.opt.gravity[2] = 0
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
@@ -30,9 +33,9 @@ model = mujoco.MjModel.from_xml_path(tf.xml_model_path)
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
-data = mujoco.MjData(model)
+data = MjData(model)
 
-mujoco.mj_resetDataKeyframe(model, data, tf.key_frame_id)
+mj_resetDataKeyframe(model, data, tf.key_frame_id)
 
 
 # Alias for model properties
@@ -46,8 +49,8 @@ qmapu: List[int] = [*range(nq0, nq0 + nu)]
 vmapu: List[int] = [*range(nv0, nv0 + nu)]
 udof = np.ix_(vmapu, vmapu)
 
-mujoco.mj_kinematics(model, data)
-mujoco.mj_comPos(model, data)
+mj_kinematics(model, data)
+mj_comPos(model, data)
 
 # Jacobians
 contacts = tf.get_list_of_contacts()
@@ -70,10 +73,10 @@ gains = tf.create_gains_dict()
 for idx, name in enumerate(contacts):
     id: int = model.site(name).id
     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
-    mujoco.mj_jacSite(model, data, Cflt, Cflr, id)
+    mj_jacSite(model, data, Cflt, Cflr, id)
     Ct[3 * idx:3 * (idx + 1), :] = Cflt
 
-mujoco.mj_fullM(model, M, data.qM)
+mj_fullM(model, M, data.qM)
 
 n = nu 
 n_eq: int = 0
@@ -150,7 +153,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         data.ctrl = tau_d
 
-        mujoco.mj_step(model, data)
+        mj_step(model, data)
 
         viewer.sync()
 
