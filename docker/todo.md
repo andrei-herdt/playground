@@ -5,7 +5,6 @@ install j
 - [ ] Integrate clangformat into vim
 - [ ] Change theme of tmux and vim inside docker conveniently
 
-- [ ] Mount host directory for vim plugins (see overlayfs)
 - [ ] Add surround plugin
 - [ ] make jumping to file from editor work
 - [ ] how to find any file
