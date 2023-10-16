@@ -10,7 +10,7 @@ from helpers import initialize_zero_array, \
     get_ee_body_ids, QPProblem, initialize_box_constraints, \
     create_jacobians_dict, fill_jacobians_dict, Perturbations, \
     get_dynamics
-import proxsuite
+from proxsuite import proxqp
 from typing import List
 #
 # import two_manip_wheel_base as tf
@@ -86,11 +86,11 @@ qpproblem2 = QPProblem()
 qpproblemfull = QPProblem()
 qpproblemfullfulljac = QPProblem()
 
-qp1 = proxsuite.proxqp.dense.QP(n, n_eq, n_in, True)
-qp2 = proxsuite.proxqp.dense.QP(2*nu, nu, n_in, True)
-qpfull = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
-# qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
-qpfullfulljac = proxsuite.proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
+qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
+qpfull = proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu+nv0, n_in, True)
+# qpfullfulljac = proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
+qpfullfulljac = proxqp.dense.QP(nv0+2*nu+3*ncontacts, nv0+nu, n_in, True)
 
 # Init box constraints
 l_box, u_box = initialize_box_constraints(nv0 + 2*nu + 3*ncontacts)
