@@ -46,12 +46,6 @@ RUN apt-get update \
 	
 RUN sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 
-# Configure tmux
-RUN mkdir -p /root/TMP \
-&& cd /root/TMP && git clone https://github.com/andrei-herdt/dotfiles \
-&& cp /root/TMP/dotfiles/.tmux.conf ~ \
-&& rm -rf /root/TMP
-
 # Configure git
 RUN git config --global --add safe.directory /workdir/playground \
 && git config --global user.email "andrei.herdt@gmail.com" \
@@ -73,3 +67,9 @@ RUN cd /root/ \
 && git clone --depth 1 https://github.com/junegunn/fzf .fzf \
 && cd .fzf \
 && ./install --all
+
+# Install dotfiles
+RUN cd /root/ && git clone https://github.com/andrei-herdt/dotfiles \
+&& cd /root/dotfiles/ \
+&& cp .tmux.conf .zshrc ~
+
