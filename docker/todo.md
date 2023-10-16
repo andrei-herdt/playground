@@ -1,8 +1,8 @@
+- [ ] map dotfiles like .zshrc to host?
 - [ ] Create python3 alias
 - [ ] eval `ssh-agent -s` and ssh-add /root/.ssh/id_ed25519 when opening a new tmux pane
 - [ ] install killall
 - [ ] How are zshrc and co updated from within docker?
-- [ ] from vim to tmux jump doesn't work
 - [ ] Make lazygit work in docker
 - [ ] In nvim, search function jumps automatically to normal mode when not found, creating havoc
 - [ ] Download mujoco binaries https://github.com/google-deepmind/mujoco/releases/download/2.3.7/mujoco-2.3.7-linux-x86_64.tar.gz
@@ -21,4 +21,5 @@ install j
 ```dockerfile
    mount -t overlay overlay -o lowerdir=/opt/rootfs/,upperdir=/workdir/armchroot-upper/,workdir=/workdir/armchroot-work/ /workdir/armchroot
 ```
+- [ ] from vim to tmux jump doesn't work
 
