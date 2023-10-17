@@ -16,8 +16,8 @@ def create_gains_dict() -> Dict[str, float]:
     # Define gains
     Kp_c: float = 0
     Kd_c: float = 0
-    Kp_q: float = 1
-    Kd_q: float = .1
+    Kp_q: float = 100
+    Kd_q: float = 10
     Kp_r: float = 0
     Kd_r: float = 0
     
@@ -76,21 +76,21 @@ def create_weights(nv1: int, nu: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    W1: np.ndarray = 0 * np.identity(3)  # EE pos task
+    com: np.ndarray = 0 * np.identity(3)  # EE pos task
     wq2: float = 1
     q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray =  np.zeros((nv1 + nu,nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
-    W3: np.ndarray = 1 * np.identity(nu)  # tau
-    W4: np.ndarray = 0 * np.identity(3)  # EE orientation task
+    tau: np.ndarray = 1 * np.identity(nu)  # tau
+    torso: np.ndarray = 0 * np.identity(3)  # EE orientation task
 
     # Create and return the dictionary
     weights_dict = {
-        'W1': W1,
+        'com': com,
         'q2': q2,
         'q': q,
-        'W3': W3,
-        'W4': W4
+        'tau': tau,
+        'torso': torso
     }
     return weights_dict
 
@@ -131,10 +131,6 @@ def get_state(data,
 def compute_des_acc(t, ref, gains, state, data, nu, nv1):
     des_acc: Dict[str, np.ndarray] = {}
 
-    r = 0.1
-    f = 0.3
-    (x_d, v_d) = circular_motion(t, ref['x_c_d'], r, f)
-    des_acc['torso'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
     des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
     r = .0
     f = .0
@@ -154,26 +150,25 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     J4 = jacs[ee_ids['torso']]['r']
     J5 = np.eye(nu,nu)
 
-    W1 = weights['W1']
+    W1 = weights['com']
     W2 = weights['q']
-    W3 = weights['W3']
-    W4 = weights['W4']
+    W3 = weights['tau']
+    W4 = weights['torso']
     W5 = weights['q2']
 
-    ref1 = refs['torso']
     ref2 = refs['joints_full']
     ref5 = refs['joints']
 
     H[ntau:ntau+nv1+nu, ntau:ntau+nv1+nu] += J1.T@W1@J1 # ddq_2
     H[ntau:ntau+nv1+nu, ntau:ntau+nv1+nu] += J2.T@W2@J2 # ddq
+    H[ntau:ntau+nv1+nu, ntau:ntau+nv1+nu] += J4.T@W4@J4 # ddq
     H[:nu, :nu] += W3 # tau
     H[ntau+nv1:ntau+nv1+nu, ntau+nv1:ntau+nv1+nu] += J5.T@W5@J5 # ddq_2
 
-    r1 = ref1@W1@J1
     r2 = ref2@W2@J2
     r5 = ref5@W5@J5
 
-    g[ntau:ntau+nv1+nu] += r1 + r2# ddq
+    g[ntau:ntau+nv1+nu] += r2# ddq
     g[ntau+nv1:ntau+nv1+nu] += r5# ddq
 
     qpproblem.A = np.zeros((nv1+nu, ntau+nu+nv1+nforce))
@@ -184,6 +179,6 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     qpproblem.A[nv1:nv1+nu,ntau:ntau+nv1+nu] += M2 # ddq
     qpproblem.b[0:nv1] += -h1
     qpproblem.b[nv1:nv1+nu] += -h2
-    # qpproblem.A[0:nv1+nu,ntau+nv1+nu:] += -C1.T # lambda
+    qpproblem.A[0:nv1+nu,ntau+nv1+nu:] += -C1.T # lambda
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

@@ -213,7 +213,7 @@ def setupQPSparseFullFullJac(M1, M2, h1, h2, C1, J1, J2, J4, W1, W2, W3, W4, ref
     qpproblem.A[nv0:nv0+nu,ntau:ntau+nv0+nu] += M2 # ddq
     qpproblem.b[0:nv0] += -h1
     qpproblem.b[nv0:nv0+nu] += -h2
-    qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
+    # qpproblem.A[0:nv0+nu,ntau+nv0+nu:] += -C1.T # lambda
 
     qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
 
