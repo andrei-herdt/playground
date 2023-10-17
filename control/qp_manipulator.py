@@ -54,8 +54,6 @@ mj_comPos(model, data)
 
 # Jacobians
 contacts = tf.get_list_of_contacts()
-#tmp
-contacts = []
 ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
 
@@ -101,9 +99,9 @@ qpproblemfull.u_box = u_box
 
 # Avoid tilting
 # tmp
-# idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11]]
-# for idx in idx_fz:
-#     l_box[idx] = 0
+idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11]]
+for idx in idx_fz:
+    l_box[idx] = 0
 
 qpproblemfull.l_box = l_box
 qpproblemfullfulljac.l_box = l_box
@@ -116,9 +114,6 @@ qpproblemfullfulljac.l_box = l_box
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
 jacs = create_jacobians_dict(ee_ids, (3,nv))
-
-print(data.qfrc_bias)
-__import__('pdb').set_trace()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -146,7 +141,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
         # setupQPSparseFull(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nv1, nu, 3*ncontacts, qpfull, qpproblemfull)
         # setupQPSparseFullFullJac(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, des_acc['ee'], des_acc['joints_full'], des_acc['ee_R'], nv1, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        print(dyn['h1full'])
         tf.setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv1, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         # qp1.solve()
         # qp2.solve()

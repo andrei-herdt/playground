@@ -12,7 +12,6 @@ def create_gains_dict() -> Dict[str, float]:
     Returns:
     - Dictionary containing the gains.
     """
-    
     # Define gains
     Kp_c: float = 0
     Kd_c: float = 0
@@ -20,7 +19,6 @@ def create_gains_dict() -> Dict[str, float]:
     Kd_q: float = 10
     Kp_r: float = 0
     Kd_r: float = 0
-    
     # Store in a dictionary
     gains_dict = {
         'Kp_c': Kp_c,
@@ -30,7 +28,6 @@ def create_gains_dict() -> Dict[str, float]:
         'Kp_r': Kp_r,
         'Kd_r': Kd_r
     }
-    
     return gains_dict
 
 def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
@@ -55,7 +52,7 @@ def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
     
     # Store in a dictionary
     references_dict = {
-        'x_c_d': x_c_d,
+        'com': x_c_d,
         'dx_c_d': dx_c_d,
         'q2_d': q2_d,
         'p_d_root': p_d_root,
@@ -76,7 +73,7 @@ def create_weights(nv1: int, nu: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    com: np.ndarray = 0 * np.identity(3)  # EE pos task
+    com: np.ndarray = 1 * np.identity(3)  # EE pos task
     wq2: float = 1
     q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray =  np.zeros((nv1 + nu,nv1 + nu))  # ddq1,ddq2
@@ -118,8 +115,8 @@ def get_state(data,
         Dict[str, Any]: A dictionary containing state information for all end effectors.
     """
     state = {
-        'x_c': data.subtree_com[ee_ids['torso']],
-        'dx_c': data.subtree_linvel[ee_ids['torso']],
+        'com': data.subtree_com[ee_ids['torso']],
+        'dcom': data.subtree_linvel[ee_ids['torso']],
         'angvel': jacs[ee_ids['torso']]['r'] @ data.qvel,
         'R_torso': data.body(ee_ids['torso']).xquat,
         'q2': data.qpos[qmapu],
@@ -131,6 +128,11 @@ def get_state(data,
 def compute_des_acc(t, ref, gains, state, data, nu, nv1):
     des_acc: Dict[str, np.ndarray] = {}
 
+    r = 0.1                                                                                          
+    f = 0.3                                                                                          
+    (x_d, v_d) = circular_motion(t, ref['com'], r, f)                                              
+    des_acc['com'] = ddotx_c_d(state['com'], state['dcom'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+ 
     des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
     r = .0
     f = .0
@@ -156,6 +158,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     W4 = weights['torso']
     W5 = weights['q2']
 
+    ref1 = refs['com']
     ref2 = refs['joints_full']
     ref5 = refs['joints']
 
@@ -165,6 +168,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     H[:nu, :nu] += W3 # tau
     H[ntau+nv1:ntau+nv1+nu, ntau+nv1:ntau+nv1+nu] += J5.T@W5@J5 # ddq_2
 
+    r1 = ref1@W1@J1
     r2 = ref2@W2@J2
     r5 = ref5@W5@J5
 
