@@ -1,9 +1,9 @@
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, List
 from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotR_d, ddotq_d_full
 
 xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
-key_frame_id: int = 1
+key_frame_id: int = 0
 
 def create_gains_dict() -> Dict[str, float]:
     """
@@ -13,8 +13,8 @@ def create_gains_dict() -> Dict[str, float]:
     - Dictionary containing the gains.
     """
     # Define gains
-    Kp_c: float = 0
-    Kd_c: float = 0
+    Kp_c: float = 10
+    Kd_c: float = 1
     Kp_q: float = 100
     Kd_q: float = 10
     Kp_r: float = 0
@@ -92,7 +92,8 @@ def create_weights(nv1: int, nu: int) -> dict:
     return weights_dict
 
 def get_list_of_contacts():
-    contacts: List[str] = ["fl_site_1", "fl_site_2", "fl_site_3", "fl_site_4"]
+    contacts: List[str] = ["fl_site_1", "fl_site_2", "fl_site_3", "fl_site_4", \
+        "fr_site_1", "fr_site_2", "fr_site_3", "fr_site_4"]
     return contacts
 
 def get_end_effector_names():
@@ -128,8 +129,8 @@ def get_state(data,
 def compute_des_acc(t, ref, gains, state, data, nu, nv1):
     des_acc: Dict[str, np.ndarray] = {}
 
-    r = 0.1                                                                                          
-    f = 0.3                                                                                          
+    r = 0.0                                                                                          
+    f = 0.0                                                                                          
     (x_d, v_d) = circular_motion(t, ref['com'], r, f)                                              
     des_acc['com'] = ddotx_c_d(state['com'], state['dcom'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
  
@@ -172,7 +173,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     r2 = ref2@W2@J2
     r5 = ref5@W5@J5
 
-    g[ntau:ntau+nv1+nu] += r2# ddq
+    g[ntau:ntau+nv1+nu] += r1 + r2# ddq
     g[ntau+nv1:ntau+nv1+nu] += r5# ddq
 
     qpproblem.A = np.zeros((nv1+nu, ntau+nu+nv1+nforce))

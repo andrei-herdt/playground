@@ -153,6 +153,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         mj_step(model, data)
 
+        input()
+        __import__('pdb').set_trace()
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.
