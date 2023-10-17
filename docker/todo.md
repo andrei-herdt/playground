@@ -6,8 +6,7 @@ install j
 - [ ] Change theme of tmux and vim inside docker conveniently
 
 - [ ] Add surround plugin
-- [ ] make jumping to file from editor work
-- [ ] how to find any file
+
 ```dockerfile
    mount -t overlay overlay -o lowerdir=/opt/rootfs/,upperdir=/workdir/armchroot-upper/,workdir=/workdir/armchroot-work/ /workdir/armchroot
 ```
