@@ -130,10 +130,9 @@ Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in rang
 
 jacs = create_jacobians_dict(ee_ids, (3,nv))
 
-fig = create_figure()
-
 sim_start = time.time()
-with mujoco.viewer.launch_passive(model, data) as viewer:
+with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui=False) as viewer:
+    __import__('pdb').set_trace()
     # Close the viewer automatically after 30 wall-seconds.
     start = time.time()
     while viewer.is_running():
@@ -170,8 +169,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         data.ctrl = tau_d
 
         mj_step(model, data)
-
-        # input()
 
         viewer.sync()
 
