@@ -16,9 +16,7 @@ We want to be able to compensate for disturbances by generating angular momenta
 We exploit the coupling between the linear and angular momentum.
 
 We create a CoM position task:
-$$
-\ddot c_d = K_p(c_d-c) + K_d(\dot c_d - \dot c)
-$$
+$$\ddot c_d = K_p(c_d-c) + K_d(\dot c_d - \dot c)$$
 
 $$
 \begin{align}
@@ -154,5 +152,5 @@ The PD task controller is missing at this stage. The desired acceleration should
 Let's start considering contact forces to further improve robustness.
 We add a penalty on the contact forces.
 
-Now, we add constraints.
+Now, we add polyhedral constraints.
 
