@@ -28,8 +28,7 @@ $$
 $$
 
 This leads to:
-
-$$ \ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d), $$
+$$\ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d),$$
 where $^{+}$ denotes a pseudo-inverse.
 
 ### Considering dynamics
