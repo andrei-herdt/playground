@@ -84,15 +84,11 @@ RUN cd $RH_INSTALLDIR \
         && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release -DEIGEN_TEST_CXX11=ON .. \
         && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
-# Pinocchio
-#RUN . ~/.bashrc && conda activate base && conda install -c conda-forge pinocchio tsid
+# Python
 RUN apt-get update \
     && apt-get install \
-	python3 python3-dev python3-pip \
+	python3 python3-dev python3-pip python3-pyqt5 \
         --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN pip3 install meshcat mujoco matplotlib mediapy
-
-
 # tzdata non-interactive
 RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && apt-get update \
@@ -104,6 +100,9 @@ RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
 RUN cd /root && wget --quiet ${BLD_GIT_LFS} -O /root/git-lfs.tar.bz2 \
         && mkdir git-lfs && cd /root/git-lfs && tar -xf /root/git-lfs.tar.bz2 \
         && ./install.sh && cd /root; rm -rf /root/git-lfs
+
+# Mujoco
+RUN pip3 install meshcat mujoco matplotlib mediapy
 
 # RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
 #     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
