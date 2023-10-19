@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple, Dict, Any
 import mujoco
 import numpy as np
+import matplotlib.pyplot as plt                    
 
 # Tasks
 def get_ee_body_ids(names: List[str], model) -> Dict[str, int]:
@@ -272,3 +273,22 @@ def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, 
 def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data):
     for id, jac in jacobians.items():
         mujoco.mj_jacBody(model, data, jac['t'], jac['r'], id)
+
+def create_figure():
+    fig = plt.figure()                                 
+    plt.ion()
+    plt.show()
+    return fig
+
+def draw_vectors(fig, ncontacts: int, data: mujoco.MjData, forces: np.ndarray):
+    force_mat = forces.reshape((-1, 3))
+    contact_pos = np.zeros((ncontacts, 3))
+    for i in range(ncontacts):
+        contact_pos[i,:] = data.site(i).xpos
+
+    for i in range(ncontacts):
+        p = contact_pos[i]
+        f = force_mat[i]
+        ax = fig.add_subplot(111, projection='3d')         
+        ax.quiver(p[0], p[1], p[2], f[0], f[1], f[2])
+        plt.draw()

@@ -1,4 +1,5 @@
 import time
+from absl.app import pdb
 
 import mujoco
 import mujoco.viewer
@@ -9,10 +10,10 @@ import numpy as np
 from helpers import initialize_zero_array, \
     get_ee_body_ids, QPProblem, initialize_box_constraints, \
     create_jacobians_dict, fill_jacobians_dict, Perturbations, \
-    get_dynamics
+    get_dynamics, create_figure, draw_vectors
 from proxsuite import proxqp
 from typing import List
-#
+
 # import two_manip_wheel_base as tf
 import humanoid as tf
 
@@ -44,17 +45,19 @@ nv: int = model.nv
 nq0: int = model.nq - model.nu
 nv1: int = model.nv - model.nu
 
+contacts = tf.get_list_of_contacts()
+ncontacts = len(contacts)
+
 # Generate actuator mappings
 qmapu: List[int] = [*range(nq0, nq0 + nu)]
 vmapu: List[int] = [*range(nv1, nv1 + nu)]
 udof = np.ix_(vmapu, vmapu)
+umapf: List[int] = [*range(nu+nv1+nu, nu+nv1+nu+3*ncontacts)]
 
 mj_kinematics(model, data)
 mj_comPos(model, data)
 
 # Jacobians
-contacts = tf.get_list_of_contacts()
-ncontacts = len(contacts)
 Ct = initialize_zero_array((3 * ncontacts, nv))
 
 M = initialize_zero_array((nv, nv))
@@ -99,7 +102,7 @@ qpproblemfull.u_box = u_box
 
 # Avoid tilting
 # tmp
-idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11]]
+idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11, 14, 17, 20, 23]]
 for idx in idx_fz:
     l_box[idx] = 0
 
@@ -114,6 +117,8 @@ qpproblemfullfulljac.l_box = l_box
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
 jacs = create_jacobians_dict(ee_ids, (3,nv))
+
+fig = create_figure()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -148,13 +153,16 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         qpfullfulljac.solve()
 
         tau_d = qpfullfulljac.results.x[:nu]
+        forces = qpfullfulljac.results.x[umapf]
 
         data.ctrl = tau_d
 
         mj_step(model, data)
 
-        input()
-        __import__('pdb').set_trace()
+        # input()
+
+        draw_vectors(fig, model.nsite, data, forces)
+
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.
