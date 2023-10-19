@@ -1,3 +1,5 @@
+github: https://github.com/andrei-herdt/playground/blob/master/control/notes.md
+
 # LQR based joint-space control
 We start with LQR in the joint space from the example [here](https://colab.research.google.com/github/deepmind/mujoco/blob/main/python/LQRipynb) 
 - [ ] If our task is expressed at acceleration level, and we are missing dynamic expressions, would an LQR formulation make sense?
@@ -27,9 +29,7 @@ $$
 
 This leads to:
 
-$$
-\ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d),
-$$
+$$ \ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d), $$
 where $^{+}$ denotes a pseudo-inverse.
 
 ### Considering dynamics
@@ -41,19 +41,13 @@ M_2\ddot q + N_2\dot q + G_2 &= J_c \lambda + \tau
 \end{align}
 $$
 to obtain the desired torque $\tau_d$:
-$$
-\tau_d = M_2\ddot q_{2,d} + N_2\dot q_{2,d} + G_2 
-$$
+$$ \tau_d = M_2\ddot q_{2,d} + N_2\dot q_{2,d} + G_2 $$
 
 For the joint-space task, we have directly the PD controller representing the complete task:
-$$
-\ddot q_d = K_p(q_d - q) + K_d(\dot q_d - \dot q)
-$$
+$$ \ddot q_d = K_p(q_d - q) + K_d(\dot q_d - \dot q) $$
 
 When expressed on the same hierarchy level, the task becomes a trade-off between two tasks:
-$$
-\ddot q_d = \alpha_1 \ddot q_{d,1} + \alpha_2 \ddot q_{d,2},
-$$
+$$ \ddot q_d = \alpha_1 \ddot q_{d,1} + \alpha_2 \ddot q_{d,2}, $$
 with $\alpha_1 + \alpha_2 = 1$.
 
 ### Quadratic Programming
