@@ -89,25 +89,37 @@ qpproblemfullfulljac = QPProblem()
 
 qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
-qpfull = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu+nv1, n_in, True)
-# qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
-qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 
+nvar = nv1+2*nu+3*ncontacts
+qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
+# qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 # Init box constraints
-l_box, u_box = initialize_box_constraints(nv1 + 2*nu + 3*ncontacts)
-qpproblemfullfulljac.l_box = l_box
-qpproblemfullfulljac.u_box = u_box
+l_box, u_box = initialize_box_constraints(nvar)
 qpproblemfull.l_box = l_box
 qpproblemfull.u_box = u_box
 
 # Avoid tilting
 # tmp
+idx_fx = [nu + nv1 + nu + i for i in [0, 3, 6, 9, 12, 15, 18, 21]]
+idx_fy = [nu + nv1 + nu + i for i in [1, 4, 7, 10, 13, 16, 19, 22]]
 idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11, 14, 17, 20, 23]]
 for idx in idx_fz:
     l_box[idx] = 0
 
 qpproblemfull.l_box = l_box
+
+nineq = len(idx_fx)
+nineq = 0 # tmp: inequalities don't work
+mu = 0.5
+qpfullfulljac = proxqp.dense.QP(nvar, nv1+nu, nineq, True)
 qpproblemfullfulljac.l_box = l_box
+qpproblemfullfulljac.u_box = u_box
+qpproblemfullfulljac.C = np.zeros((nineq, nvar))
+for i in range(nineq):
+    qpproblemfullfulljac.C[i,idx_fx[i]] = 1
+    qpproblemfullfulljac.C[i,idx_fz[i]] = -mu
+qpproblemfullfulljac.l = np.ones(nineq) * 1e8
+qpproblemfullfulljac.u = np.zeros(nineq)
 
 # set acc to zero for z,roll,pitch
 # for i in range(2, 5):
@@ -160,8 +172,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         mj_step(model, data)
 
         # input()
-
-        draw_vectors(fig, model.nsite, data, forces)
 
         viewer.sync()
 

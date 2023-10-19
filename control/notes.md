@@ -164,3 +164,7 @@ We add a penalty on the contact forces.
 
 Now, we add polyhedral constraints.
 
+$$f_x \leq \mu f_z$$
+$$-f_x \leq \mu f_z$$
+$$f_y \leq \mu f_z$$
+$$-f_y \leq \mu f_z$$
