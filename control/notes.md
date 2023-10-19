@@ -33,6 +33,7 @@ where $^{+}$ denotes a pseudo-inverse.
 
 ### Considering dynamics
 We use the Lagrangian:
+
 $$\begin{align}
 M_1\ddot q + N_1\dot q + G_1 &= J_c \lambda \\
 M_2\ddot q + N_2\dot q + G_2 &= J_c \lambda + \tau
