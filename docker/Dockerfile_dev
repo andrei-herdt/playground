@@ -73,8 +73,8 @@ RUN cd /root/ \
 && cd .fzf \
 && ./install --all
 
-# Install npm (for python linter)
+# Install npm, python3-venv (for python linter)
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install \
-    npm \
+    npm python3-venv \
     --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
