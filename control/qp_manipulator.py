@@ -38,15 +38,16 @@ mj_resetDataKeyframe(model, data, tf.key_frame_id)
 # Alias for model properties
 nu: int = model.nu
 nv: int = model.nv
-nq0: int = model.nq - model.nu
-nv1: int = model.nv - model.nu
+nq0 = tf.nq0
+nv1 = tf.nv1
 
 contacts = tf.get_list_of_contacts()
 ncontacts = len(contacts)
 
 # Generate actuator mappings
-qmapu: List[int] = [*range(nq0, nq0 + nu)]
-vmapu: List[int] = [*range(nv1, nv1 + nu)]
+act_j_names = tf.get_actuated_names()
+vmapu = tf.get_vmapu(act_j_names, model)
+qmapu = tf.get_qmapu(act_j_names, model)
 udof = np.ix_(vmapu, vmapu)
 umapf: List[int] = [*range(nu+nv1+nu, nu+nv1+nu+3*ncontacts)]
 
@@ -86,8 +87,8 @@ qpproblemfullfulljac = QPProblem()
 qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
 
-nvar = nv1+2*nu+3*ncontacts
-qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
+nvar = nu+nv+3*ncontacts
+# qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
 # qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 # Init box constraints
 l_box, u_box = initialize_box_constraints(nvar)
@@ -95,10 +96,11 @@ qpproblemfull.l_box = l_box
 qpproblemfull.u_box = u_box
 
 # Avoid tilting
+
 # tmp
-idx_fx = [nu + nv1 + nu + i for i in [0, 3, 6, 9, 12, 15, 18, 21]]
-idx_fy = [nu + nv1 + nu + i for i in [1, 4, 7, 10, 13, 16, 19, 22]]
-idx_fz = [nu + nv1 + nu + i for i in [2, 5, 8, 11, 14, 17, 20, 23]]
+idx_fx = [nu + nv + 3*i+0 for i in range(ncontacts)]
+idx_fy = [nu + nv + 3*i+1 for i in range(ncontacts)]
+idx_fz = [nu + nv + 3*i+2 for i in range(ncontacts)]
 for idx in idx_fz:
     l_box[idx] = 0
 
@@ -107,7 +109,7 @@ qpproblemfull.l_box = l_box
 nineq = len(idx_fx)
 nineq = 0 # tmp: inequalities don't work
 mu = 0.5
-qpfullfulljac = proxqp.dense.QP(nvar, nv1+nu, nineq, True)
+qpfullfulljac = proxqp.dense.QP(nvar, nv, nineq, True)
 qpproblemfullfulljac.l_box = l_box
 qpproblemfullfulljac.u_box = u_box
 qpproblemfullfulljac.C = np.zeros((nineq, nvar))
@@ -128,7 +130,6 @@ jacs = create_jacobians_dict(ee_ids, (3,nv))
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui=False) as viewer:
-    __import__('pdb').set_trace()
     # Close the viewer automatically after 30 wall-seconds.
     start = time.time()
     while viewer.is_running():
@@ -147,7 +148,7 @@ with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui
 
         # Define References
         t = time.time() - start
-        des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv1)
+        des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu)
 
         # setupQPDense(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp1, qpproblem1)
         # setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)

@@ -38,15 +38,17 @@ def ddotx_c_d(p, v, p_d, v_d, Kp_c, Kd_c):
 def ddotq_d(p, v, q2_d, v2_d, Kp_q, Kd_q): 
     return -Kp_q * (p - q2_d) - Kd_q * (v - v2_d) 
 
-def ddotq_d_full(p, v, p_delta, v_delta, p_d_root, R_d_root, q2_d, v_d, Kp_q, Kd_q): 
+def ddotq_d_full(p, v, p_delta, v_delta, p_d_root, R_d_root, q2_d, v_d, Kp_q, Kd_q, vmapu): 
     angerr = np.zeros(3)
     ang = p[3:7]
     mujoco.mju_subQuat(angerr, ang, R_d_root)
     p_err = np.zeros_like(v)
-    p_err[:3] = (p[:3]-p_d_root - p_delta)
+    p_err[:3] = (p[:3] - p_d_root - p_delta)
     p_err[3:6] = angerr
-    p_err[6:] = q2_d
+    p_err[vmapu] = q2_d
     v_d[:3] = v_delta
+    # desired joint velocities are zero
+    __import__('pdb').set_trace()
     return -Kp_q * p_err - Kd_q * (v - v_d) 
 
 def ddotR_d(p, v, R_d_ee, dR_d_ee, Kp_r, Kd_r): 

@@ -4,6 +4,8 @@ from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotR_d, ddotq_d_full
 
 xml_model_path: str = '/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml'
 key_frame_id: int = 0
+nq0 = 7
+nv1 = 6
 
 def create_gains_dict() -> Dict[str, float]:
     """
