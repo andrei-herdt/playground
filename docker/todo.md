@@ -1,4 +1,5 @@
 - [ ] fix symbols in neovim
+- [ ] enable selection via ctrl j/k and l
 - [ ] export docker history to host
 - [ ] install killall
 - [ ] Make lazygit work in docker
