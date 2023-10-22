@@ -62,7 +62,7 @@ M = initialize_zero_array((nv, nv))
 # Initialize task matrices
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
-weights = tf.create_weights(nv1, nu)
+weights = tf.create_weights(nv1, nu, ncontacts)
 ee_names = tf.get_end_effector_names()
 ee_ids = get_ee_body_ids(ee_names, model)
 ref = tf.create_references_dict(data, ee_ids, qmapu)
@@ -79,21 +79,21 @@ mj_fullM(model, M, data.qM)
 n = nu 
 n_eq: int = 0
 n_in: int = 0
-qpproblem1 = QPProblem()
-qpproblem2 = QPProblem()
-qpproblemfull = QPProblem()
+# qpproblem1 = QPProblem()
+# qpproblem2 = QPProblem()
+# qpproblemfull = QPProblem()
 qpproblemfullfulljac = QPProblem()
 
 qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
-
 nvar = nu+nv+3*ncontacts
+
 # qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
 # qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 # Init box constraints
 l_box, u_box = initialize_box_constraints(nvar)
-qpproblemfull.l_box = l_box
-qpproblemfull.u_box = u_box
+# qpproblemfull.l_box = l_box
+# qpproblemfull.u_box = u_box
 
 # Avoid tilting
 
@@ -104,7 +104,7 @@ idx_fz = [nu + nv + 3*i+2 for i in range(ncontacts)]
 for idx in idx_fz:
     l_box[idx] = 0
 
-qpproblemfull.l_box = l_box
+# qpproblemfull.l_box = l_box
 
 nineq = len(idx_fx)
 nineq = 0 # tmp: inequalities don't work
@@ -112,6 +112,7 @@ mu = 0.5
 qpfullfulljac = proxqp.dense.QP(nvar, nv, nineq, True)
 qpproblemfullfulljac.l_box = l_box
 qpproblemfullfulljac.u_box = u_box
+
 qpproblemfullfulljac.C = np.zeros((nineq, nvar))
 for i in range(nineq):
     qpproblemfullfulljac.C[i,idx_fx[i]] = 1
@@ -150,23 +151,20 @@ with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui
         t = time.time() - start
         des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu)
 
-        # setupQPDense(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp1, qpproblem1)
-        # setupQPSparse(dyn['M2'], J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], dyn['h2'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nu, 0, qp2, qpproblem2)
-        # setupQPSparseFull(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, J1, J2, J4, weights['W1'], weights['W2'], weights['W3'], weights['W4'], des_acc['ee'], des_acc['joints'], des_acc['ee_R'], nv1, nu, 3*ncontacts, qpfull, qpproblemfull)
-        # setupQPSparseFullFullJac(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, Jebt, J2full, Jebr, W1, W2full, W3, W4, des_acc['ee'], des_acc['joints_full'], des_acc['ee_R'], nv1, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
         tf.setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv1, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        # qp1.solve()
-        # qp2.solve()
-        # qpfull.solve()
         qpfullfulljac.solve()
 
         tau_d = qpfullfulljac.results.x[:nu]
         forces = qpfullfulljac.results.x[umapf]
+        print("fx: ", qpfullfulljac.results.x[idx_fx])
+        print("fy: ", qpfullfulljac.results.x[idx_fy])
+        print("fz: ", qpfullfulljac.results.x[idx_fz])
 
         data.ctrl = tau_d
 
         mj_step(model, data)
 
+        __import__('pdb').set_trace()
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.

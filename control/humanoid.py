@@ -14,13 +14,13 @@ def get_actuated_names() -> List[str]:
         "right-hip-roll", "right-hip-yaw", "right-hip-pitch", "right-knee", "right-foot"]
     return joint_names
 
-def get_vmapu(joint_names: List[str], model) -> np.ndarray:
+def get_vmapu(joint_names: List[str], model) -> List[int]:
     vmapu: List[int] = [0 for _ in range(len(joint_names))]
     for i in range(len(joint_names)):
         vmapu[i] = model.joint(joint_names[i]).dofadr[0]
     return vmapu
 
-def get_qmapu(joint_names: List[str], model) -> np.ndarray:
+def get_qmapu(joint_names: List[str], model) -> List[int]:
     vmapu: List[int] = [0 for _ in range(len(joint_names))]
     for i in range(len(joint_names)):
         vmapu[i] = model.joint(joint_names[i]).qposadr[0]
@@ -34,8 +34,8 @@ def create_gains_dict() -> Dict[str, float]:
     - Dictionary containing the gains.
     """
     # Define gains
-    Kp_c: float = 10
-    Kd_c: float = 1
+    Kp_c: float = 100
+    Kd_c: float = 10
     Kp_q: float = 100
     Kd_q: float = 10
     Kp_r: float = 0
@@ -82,13 +82,14 @@ def create_references_dict(data, ee_ids, qmapu) -> Dict[str, Any]:
 
     return references_dict
 
-def create_weights(nv1: int, nu: int) -> dict:
+def create_weights(nv1: int, nu: int, nc: int) -> dict:
     """
     Factory function to generate weights dictionary.
     
     Parameters:
     - nv1: int 
     - nu: int
+    - nc: int
 
     Returns:
     - Dictionary containing the weight arrays.
@@ -99,8 +100,9 @@ def create_weights(nv1: int, nu: int) -> dict:
     q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray =  np.zeros((nv1 + nu,nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
-    tau: np.ndarray = 1 * np.identity(nu)  # tau
+    tau: np.ndarray = .001 * np.identity(nu)  # tau
     torso: np.ndarray = 0 * np.identity(3)  # EE orientation task
+    forces: np.ndarray = .000001 * np.identity(3*nc)
 
     # Create and return the dictionary
     weights_dict = {
@@ -108,7 +110,8 @@ def create_weights(nv1: int, nu: int) -> dict:
         'q2': q2,
         'q': q,
         'tau': tau,
-        'torso': torso
+        'torso': torso,
+        'forces': forces
     }
     return weights_dict
 
@@ -172,7 +175,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     g = np.zeros(ntau+nv+nforce)
 
     J1 = jacs[ee_ids['torso']]['t']
-    J2 = np.eye(nu+nv1,nu+nv1)
+    # J2 = np.eye(nu+nv1,nu+nv1)
     J4 = jacs[ee_ids['torso']]['r']
     J5 = np.eye(nu,nu)
 
@@ -181,6 +184,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     W3 = weights['tau']
     W4 = weights['torso']
     W5 = weights['q2']
+    W6 = weights['forces']
 
     ref1 = refs['com']
     # ref2 = refs['joints_full']
@@ -192,6 +196,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     H[:nu, :nu] += W3 # tau
     udof = np.ix_(vmapu, vmapu)
     H[udof] += J5.T@W5@J5 # ddq_2
+    H[ntau+nv:ntau+nv+nforce, ntau+nv:ntau+nv+nforce] += W6
 
     r1 = ref1@W1@J1
     # r2 = ref2@W2@J2
