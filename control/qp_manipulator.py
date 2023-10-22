@@ -1,5 +1,4 @@
 import time
-from absl.app import pdb
 
 import mujoco
 import mujoco.viewer
@@ -19,8 +18,6 @@ import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
-pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
-
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
@@ -37,7 +34,6 @@ model = MjModel.from_xml_path(tf.xml_model_path)
 data = MjData(model)
 
 mj_resetDataKeyframe(model, data, tf.key_frame_id)
-
 
 # Alias for model properties
 nu: int = model.nu
