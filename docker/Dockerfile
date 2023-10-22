@@ -14,7 +14,8 @@ ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
 ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
 ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
 
-FROM ubuntu:22.04
+# FROM ubuntu:22.04
+FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu22.04
 RUN echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/00-docker
 RUN echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/00-docker
 
@@ -33,6 +34,8 @@ ARG BLD_URDFDOM_VERSION
 ARG BLD_TINYXML_URL
 ARG BLD_BOOST_URL
 ARG BLD_MINICONDA_URL
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 ENV INSTALLDIR=/root
 
@@ -87,7 +90,7 @@ RUN apt-get update \
 # tzdata non-interactive
 RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata \
+  && apt-get install -y tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
