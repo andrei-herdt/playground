@@ -2,8 +2,12 @@ import numpy as np
 from typing import Dict, Any, List
 from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotR_d, ddotq_d_full
 
-xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
+# xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
+# key_frame_id: int = 0
+xml_model_path: str = '/workdir/playground/3rdparty/mujoco_menagerie/agility_cassie/scene.xml'
 key_frame_id: int = 0
+
+
 
 def create_gains_dict() -> Dict[str, float]:
     """
@@ -92,8 +96,9 @@ def create_weights(nv1: int, nu: int) -> dict:
     return weights_dict
 
 def get_list_of_contacts():
-    contacts: List[str] = ["fl_site_1", "fl_site_2", "fl_site_3", "fl_site_4", \
-        "fr_site_1", "fr_site_2", "fr_site_3", "fr_site_4"]
+    # contacts: List[str] = ["fl_site_1", "fl_site_2", "fl_site_3", "fl_site_4", \
+    #     "fr_site_1", "fr_site_2", "fr_site_3", "fr_site_4"]
+    contacts: List[str] = ["lfoot1", "lfoot2", "rfoot1", "rfoot2"]
     return contacts
 
 def get_end_effector_names():
