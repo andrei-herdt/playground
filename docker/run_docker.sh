@@ -38,7 +38,8 @@ SSH=0
 NAME=''
 NETWORKING=''
 DOCKER_EXTRA_FLAGS_=()
-ENTRYPOINT="/bin/bash"
+ENTRYPOINT="/bin/tmux"
+DEVIMAGE=_dev
 
 while [ "$1" != "" ]; do
 	case $1 in
@@ -173,6 +174,8 @@ if [ -f hosts ]; then
 	done < <(grep -o '^[^#]*' hosts)
 fi
 
+xhost +local:docker
+
 docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $GPUOPT \
 	${NETWORKING} -ti \
 	-v $XSOCK:$XSOCK \
@@ -181,12 +184,16 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	-v ${PWD}/workdir:/workdir \
 	-v ${PWD}/workdir/.config/nvim:/root/.config/nvim \
 	-v ${PWD}/workdir/.local/share/nvim:/root/.local/share/nvim \
+	-v ~/.bash_history:/root/.bash_history \
+	-v ~/.zsh_history:/root/.zsh_history \
+	-v ~/.ssh/:/root/.ssh/ \
 	${MOUNT_LOG_DIR} \
 	${EXTRA_MOUNTS} \
 	${EXTRA_HOSTS} \
 	${DEVICES} \
 	${DOCKER_EXTRA_FLAGS} \
 	--entrypoint ${ENTRYPOINT} \
+	--workdir /workdir/playground \
 	-e XAUTHORITY=$XAUTH \
 	-e DISPLAY=${DISPLAY} \
 	${IMAGE}${DEVIMAGE}:$VERSION

@@ -8,16 +8,9 @@ ENV TZ=Europe/London
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install \
     curl kmod \
-    fzf ripgrep tree xclip zip unzip \
+    ripgrep tree xclip zip unzip \
     gettext \
         --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-
-#RUN CUSTOM_NVIM_PATH=/usr/local/bin/nvim.appimage \
-#	&& curl -o ${CUSTOM_NVIM_PATH} -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage \
-#	&& chmod a+x ${CUSTOM_NVIM_PATH} \
-#	&& set -u \
-#	&& update-alternatives --install /usr/bin/nvim nvim "${CUSTOM_NVIM_PATH}" 110
 
 # Install Neovim from source.
 RUN mkdir -p /root/TMP \
@@ -32,8 +25,8 @@ RUN update-alternatives --install /usr/local/bin/vi vi /usr/local/bin/nvim 1 && 
 RUN pip3 install pynvim
 
 # Deno
-ENV DENO_INSTALL="/usr/local"
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+#ENV DENO_INSTALL="/usr/local"
+#RUN curl -fsSL https://deno.land/install.sh | sh
 
 # Map rg to ag
 RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
@@ -41,3 +34,47 @@ RUN update-alternatives --install /usr/local/bin/ag ag /usr/bin/rg 1
 # Notebook
 RUN pip3 install notebook pudb
 
+# Install robot descriptions  
+RUN pip3 install robot_descriptions
+ENV ROBOT_DESCRIPTIONS_CACHE=/workdir/
+
+# Configurations
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install \
+    tmux zsh tig \
+        --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+	
+RUN sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+
+# Configure git
+RUN git config --global --add safe.directory /workdir/playground \
+&& git config --global user.email "andrei.herdt@gmail.com" \
+&& git config --global user.name "Andrei Herdt" \
+&& git config --global core.editor vi
+
+# Install proxsuite
+RUN pip3 install proxsuite
+
+# Install browser and xdg-utils
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install \
+    firefox xdg-utils \
+    --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install dotfiles
+RUN cd /root/ && git clone https://github.com/andrei-herdt/dotfiles \
+&& cd /root/dotfiles/ \
+&& cp .tmux.conf .zshrc ~
+
+# Install fzf
+#
+RUN cd /root/ \
+&& git clone --depth 1 https://github.com/junegunn/fzf .fzf \
+&& cd .fzf \
+&& ./install --all
+
+# Install npm, python3-venv (for python linter)
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install \
+    npm python3-venv \
+    --assume-yes --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*

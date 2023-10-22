@@ -10,7 +10,7 @@ from helpers import Perturbations, get_perturbation
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
 model = mujoco.MjModel.from_xml_path(
-    '/workdir/mujoco/model/humanoid/humanoid.xml')
+    '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
 data = mujoco.MjData(model)
 
 height_offsets = np.linspace(-0.001, 0.001, 2001)
@@ -36,6 +36,8 @@ qpos0 = data.qpos.copy()  # Save the position setpoint.
 mujoco.mj_inverse(model, data)
 qfrc0 = data.qfrc_inverse.copy()
 
+__import__('pdb').set_trace()
+
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
 
@@ -51,15 +53,15 @@ nv = model.nv  # Shortcut for the number of DoFs.
 mujoco.mj_resetData(model, data)
 data.qpos = qpos0
 mujoco.mj_forward(model, data)
-jac_com = np.zeros((3, nv))
-mujoco.mj_jacSubtreeCom(model, data, jac_com, model.body('torso').id)
+Jc = np.zeros((3, nv))
+mujoco.mj_jacSubtreeCom(model, data, Jc, model.body('torso').id)
 
 # Get the Jacobian for the left foot.
-jac_foot = np.zeros((3, nv))
-mujoco.mj_jacBodyCom(model, data, jac_foot, None, model.body('foot_left').id)
+Jfl = np.zeros((3, nv))
+mujoco.mj_jacBodyCom(model, data, Jfl, None, model.body('foot_left').id)
 ctrl0 = np.atleast_2d(qfrc0) @ np.linalg.pinv(data.actuator_moment)
 ctrl0 = ctrl0.flatten()  # Save the ctrl setpoint.
-jac_diff = jac_com - jac_foot
+jac_diff = Jc - Jfl
 Qbalance = jac_diff.T @ jac_diff
 
 # Get all joint names.
@@ -124,12 +126,32 @@ K = np.linalg.inv(R + B.T @ P @ B) @ B.T @ P @ A
 # Allocate position difference dq.
 dq = np.zeros(model.nv)
 
+pert = Perturbations([(2, 0.05), (5, 0.05)], 0)
 
-pert = Perturbations([(2, 0.05), (5, 0.1)], 0)
-
-# Get the mass matrix
 M = np.zeros((model.nv, model.nv))
-mujoco.mj_fullM(model, M, data.qM)
+Minv = np.zeros((model.nv, model.nv))
+
+# Task weights
+W1 = 1*np.identity(3)
+W2 = 100*np.identity(3)
+W3 = .1*np.identity(nu)
+
+# Constants
+x_c_init = data.subtree_com[0]
+id_fl = model.body('foot_left').id
+x_fl_init = data.subtree_com[id_fl]
+x_c_d = np.array([x_fl_init[0], x_fl_init[1], x_c_init[2]])
+
+g = np.array([0, 0, 9.81])
+
+# Task function
+Kp_c = 1
+Kd_c = 0.1
+
+
+def ddotx_c_d(p, v): return Kp_c * (p - x_c_d) + \
+    Kd_c * (v - np.zeros(3))  # + g
+
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -145,8 +167,37 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         # LQR control law.
         data.ctrl = ctrl0 - K @ dx
 
-        data.qvel[0] += get_perturbation(pert, step_start-sim_start)
+        # Get state
+        dx_c = data.subtree_linvel[0]
+        dx_fl = data.subtree_linvel[id_fl]
+        x_c = data.subtree_com[0]
 
+        # Get the mass matrix and the bias term
+        mujoco.mj_fullM(model, M, data.qM)
+        M2 = M[6:, 6:]
+        M2inv = np.linalg.inv(M2)
+        h2 = data.qfrc_bias[6:]
+
+        J1 = Jc[:, 6:]
+        J2 = Jfl[:, 6:]
+        H1 = M2inv.T@J1.T@W1@J1@M2inv
+        H2 = M2inv.T@J2.T@W2@J2@M2inv
+        Hpinv = np.linalg.pinv(H1 + H2 + W3)
+
+        r1 = (J1@M2inv@h2+ddotx_c_d(x_c, dx_c))@W1@J1@M2inv
+        r2 = (J2@M2inv@h2+ddotx_c_d(x_fl_init, dx_fl))@W2@J2@M2inv
+
+        tau_d = Hpinv@(r1 + r2)
+
+        # data.ctrl = -tau_d
+
+        # print(data.ctrl)
+        # print(tau_d)
+        # print(data.body('foot_left').xipos)
+        # here
+        # data.qvel[0] += get_perturbation(pert, step_start-sim_start)
+
+        # input()
         mujoco.mj_step(model, data)
 
         viewer.sync()
