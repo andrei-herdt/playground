@@ -1,3 +1,5 @@
+ARG NCORE
+
 ARG BLD_PINOCCHIO_URL=https://github.com/stack-of-tasks/pinocchio
 ARG BLD_PINOCCHIO_VERSION=e7f00457b5928e2f9e0a4567da2c82b5abbdc93f
 ARG BLD_CMAKE_VERSION=3.27.0
@@ -10,14 +12,13 @@ ARG BLD_URDFDOM_URL=https://github.com/ros/urdfdom.git
 ARG BLD_URDFDOM_VERSION=0da4b20675cdbe14b532d484a1c17df85b4e1584
 ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
 ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
-#ARG BLD_MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-py311_23.5.2-0-Linux-x86_64.sh
 ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
-ARG BLD_GIT_LFS=https://github.com/git-lfs/git-lfs/releases/download/v2.9.0/git-lfs-linux-amd64-v2.9.0.tar.gz
 
 FROM ubuntu:22.04
 RUN echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/00-docker
 RUN echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/00-docker
 
+ARG NCORE
 ARG BLD_PINOCCHIO_URL
 ARG BLD_PINOCCHIO_VERSION
 ARG BLD_CMAKE_URL
@@ -32,7 +33,6 @@ ARG BLD_URDFDOM_VERSION
 ARG BLD_TINYXML_URL
 ARG BLD_BOOST_URL
 ARG BLD_MINICONDA_URL
-ARG BLD_GIT_LFS
 
 ENV INSTALLDIR=/root
 
@@ -42,6 +42,7 @@ RUN apt-get update \
     && apt-get install \
     sudo \
     git \
+    git-lfs \
     ssh \
     wget \
     build-essential \
@@ -53,36 +54,30 @@ RUN apt-get update \
 ENV CC="gcc"
 ENV CXX="g++"
 
+
 # CMake
-RUN cd /root && wget --quiet ${BLD_CMAKE_URL} && tar -xf cmake-${BLD_CMAKE_VERSION}.tar.gz \
-   && cd /root/cmake-${BLD_CMAKE_VERSION} && ./bootstrap && make -j5 && make -j4 install && cd /root && rm -rf /root/cmake-${BLD_CMAKE_VERSION}
-
-# Anaconda 3
-#RUN wget --quiet ${BLD_MINICONDA_URL} -O ~/anaconda.sh && \
-#    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
-#    rm ~/anaconda.sh && \
-#    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-#    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-#    echo "conda activate base" >> ~/.bashrc
-
-# scientific python packages 
-#ENV PATH="/opt/conda/bin:$PATH"
-#ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/conda/include/python3.9"
-#RUN . ~/.bashrc && conda activate base && conda install -y numpy scipy pybind11
+RUN cd /root \
+    && wget --quiet ${BLD_CMAKE_URL} \
+    && tar -xf cmake-${BLD_CMAKE_VERSION}.tar.gz \
+    && cd /root/cmake-${BLD_CMAKE_VERSION} \
+    && ./bootstrap \
+    && make -j ${NCORE} \
+    && make install \
+    && cd /root && rm -rf /root/cmake-${BLD_CMAKE_VERSION}
 
 # Install boost
 RUN cd /root && wget -q -c ${BLD_BOOST_URL} -O /root/boost.tar.bz2 \
         && mkdir boost && cd /root/boost && tar -xf /root/boost.tar.bz2 --strip-components=1 && \
      cd /root/boost && \
           ./bootstrap.sh && \
-           ./b2 -j8 install ; cd /root; rm -rf /root/boost*
+           ./b2 -j ${NCORE} install ; cd /root; rm -rf /root/boost*
 
 # Eigen3
 RUN cd $RH_INSTALLDIR \
         && git clone ${BLD_EIGEN_URL} eigen && cd eigen \
         && git checkout ${BLD_EIGEN_VERSION} \
         && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release -DEIGEN_TEST_CXX11=ON .. \
-        && make -j8 blas && make -j8 install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
+        && make -j ${NCORE} blas && make -j ${NCORE} install && (cd blas && make install) # && rm -rf $RH_INSTALLDIR/eigen
 
 # Python
 RUN apt-get update \
@@ -96,36 +91,6 @@ RUN ln -fs /usr/share/zoneinfo/Europe/London /etc/localtime \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Git LFS
-RUN cd /root && wget --quiet ${BLD_GIT_LFS} -O /root/git-lfs.tar.bz2 \
-        && mkdir git-lfs && cd /root/git-lfs && tar -xf /root/git-lfs.tar.bz2 \
-        && ./install.sh && cd /root; rm -rf /root/git-lfs
-
 # Mujoco
 RUN pip3 install meshcat mujoco matplotlib mediapy
 
-# RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_HEADERS_URL} urdfdom_headers && cd urdfdom_headers \
-#     && git checkout ${BLD_URDFDOM_HEADERS_VERSION} && git submodule update --init --recursive \
-#     && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
-#     && cd $RH_INSTALLDIR && rm -rf urdfdom_headers
-
-# RUN cd $RH_INSTALLDIR && git -c http.sslVerify=false  clone ${BLD_TINYXML_URL} tinyxml && cd tinyxml\
-#     && make all && make install \
-#     && cd /root && rm -rf tinyxml
-
-# RUN cd $RH_INSTALLDIR && git clone ${BLD_URDFDOM_URL} urdfdom && cd urdfdom \
-#     && git checkout ${BLD_URDFDOM_VERSION} && git submodule update --init --recursive \
-#     && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
-#     && cd $RH_INSTALLDIR && rm -rf urdfdom
-
-# RUN cd $RH_INSTALLDIR \
-#         && git clone ${BLD_EIGENPY_URL} eigenpy \
-#         && cd eigenpy && git checkout ${BLD_EIGENPY_VERSION} && git submodule update --init --recursive \
-#         && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/opt/openrobots -DCMAKE_BUILD_TYPE=Release .. && make -j8 install \
-#         && cd $RH_INSTALLDIR # && rm -rf $RH_INSTALLDIR/eigenpy
-
-# RUN cd $INSTALLDIR \
-#      && git clone ${BLD_PINOCCHIO_URL} pinocchio \
-#      && cd pinocchio && git checkout ${BLD_PINOCCHIO_VERSION} && git submodule update --init --recursive \
-#      && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DBUILD_WITH_URDF_SUPPORT=OFF .. -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_INTERFACE=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots \
-#      && make -j8 && make install
