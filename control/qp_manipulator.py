@@ -14,7 +14,8 @@ from proxsuite import proxqp
 from typing import List
 
 # import two_manip_wheel_base as tf
-import humanoid as tf
+# import humanoid as tf
+import quadruped as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 

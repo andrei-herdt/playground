@@ -99,14 +99,14 @@ def create_weights(nv1: int, nu: int, nc: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    com: np.ndarray = 1 * np.identity(3)  # EE pos task
+    com: np.ndarray = 0 * np.identity(3)  # EE pos task
     wq2: float = 1
     q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray =  np.zeros((nv1 + nu,nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = .001 * np.identity(nu)  # tau
     trunk: np.ndarray = 0 * np.identity(3)  # EE orientation task
-    forces: np.ndarray = .000001 * np.identity(3*nc)
+    forces: np.ndarray = .001 * np.identity(3*nc)
 
     # Create and return the dictionary
     weights_dict = {
@@ -175,7 +175,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     nv = M1.shape[1]
     # Assume arrangement
     # [tau,ddq_1, ddq_2, lambda] 
-    H = np.zeros((ntau+nv+nforce, ntau+nv+nforce))
+    qpproblem.H = np.zeros((ntau+nv+nforce, ntau+nv+nforce))
     g = np.zeros(ntau+nv+nforce)
 
     J1 = jacs[ee_ids['trunk']]['t']
@@ -194,13 +194,17 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     # ref2 = refs['joints_full']
     ref5 = refs['joints']
 
-    H[ntau:ntau+nv, ntau:ntau+nv] += J1.T@W1@J1 # ddq_2
-    # H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
-    H[ntau:ntau+nv, ntau:ntau+nv] += J4.T@W4@J4 # ddq
-    H[:nu, :nu] += W3 # tau
-    udof = np.ix_(vmapu, vmapu)
-    H[udof] += J5.T@W5@J5 # ddq_2
-    H[ntau+nv:ntau+nv+nforce, ntau+nv:ntau+nv+nforce] += W6
+    qpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J1.T@W1@J1 # ddq_2
+    # qpqpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
+    qpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J4.T@W4@J4 # ddq
+    qpproblem.H[:nu, :nu] += W3 # tau
+    ddq_2 = [x + nu for x in vmapu]
+    udof = np.ix_(ddq_2, ddq_2)
+    qpproblem.H[udof] += J5.T@W5@J5 # ddq_2
+    qpproblem.H[ntau+nv:ntau+nv+nforce, ntau+nv:ntau+nv+nforce] += W6
+
+    # tmp
+    # qpproblem.H[nu:nu+6, nu:nu+6] += 0.001 * np.identity(6) # tau
 
     r1 = ref1@W1@J1
     # r2 = ref2@W2@J2
@@ -209,6 +213,7 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     g[ntau:ntau+nv] += r1 # ddq
     # g[ntau:ntau+nv] += r2 # ddq
     g[vmapu] += r5# ddq
+    __import__('pdb').set_trace()
 
     qpproblem.A = np.zeros((nv, ntau+nv+nforce))
     qpproblem.b = np.zeros(nv)
@@ -220,4 +225,5 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     qpproblem.b[nv1:nv] += -h2
     qpproblem.A[0:nv,ntau+nv:] += -C1.T # lambda
 
-    qp.init(H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)
+
+    qp.init(qpproblem.H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

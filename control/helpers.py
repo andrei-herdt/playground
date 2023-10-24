@@ -102,6 +102,7 @@ def calculateCoMAcc(model, data):
 
 @dataclass
 class QPProblem:
+    H: np.ndarray = None
     A: np.ndarray = None
     b: np.ndarray = None
     C: np.ndarray = None
