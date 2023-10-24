@@ -1,4 +1,5 @@
 - [ ] fix symbols in neovim
+- [ ] push image to docker hub
 - [ ] enable selection via ctrl j/k and l
 - [ ] export docker history to host
 - [ ] install killall
