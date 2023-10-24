@@ -6,4 +6,4 @@
 	url = https://github.com/andrei-herdt/kinova_mj_description
 [submodule "3rdparty/mujoco_menagerie"]
 	path = 3rdparty/mujoco_menagerie
-	url = git@github.com:andrei-herdt/mujoco_menagerie.git
+	url = https://github.com/andrei-herdt/mujoco_menagerie.git
