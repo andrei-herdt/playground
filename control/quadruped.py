@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict, Any, List
-from helpers import circular_motion, ddotx_c_d, ddotq_d, ddotq_d_full
+from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
 # xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
 # key_frame_id: int = 0
@@ -38,12 +38,12 @@ def create_gains_dict() -> Dict[str, float]:
     - Dictionary containing the gains.
     """
     # Define gains
-    Kp_c: float = 100
-    Kd_c: float = 10
+    Kp_c: float = 1000
+    Kd_c: float = 100
     Kp_q: float = 100
     Kd_q: float = 10
-    Kp_r: float = 0
-    Kd_r: float = 0
+    Kp_r: float = 100
+    Kd_r: float = 10
     # Store in a dictionary
     gains_dict = {
         'Kp_c': Kp_c,
@@ -99,13 +99,13 @@ def create_weights(nv1: int, nu: int, nc: int) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    com: np.ndarray = 0 * np.identity(3)  # EE pos task
-    wq2: float = 1
+    com: np.ndarray = 1 * np.identity(3)  # EE pos task
+    wq2: float = 0
     q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray =  np.zeros((nv1 + nu,nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = .001 * np.identity(nu)  # tau
-    trunk: np.ndarray = 0 * np.identity(3)  # EE orientation task
+    trunk: np.ndarray = 1 * np.identity(3)  # EE orientation task
     forces: np.ndarray = .001 * np.identity(3*nc)
 
     # Create and return the dictionary
@@ -164,15 +164,17 @@ def compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu):
     des_acc['com'] = ddotx_c_d(state['com'], state['dcom'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
  
     des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
-    r = .0
-    f = .0
-    (x_d, v_d) = circular_motion(t, np.zeros(3), r, f)
+    # r = .0
+    # f = .0
+    # (x_d, v_d) = circular_motion(t, np.zeros(3), r, f)
     # des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv1), gains['Kp_q'], gains['Kd_q'], vmapu)
+    des_acc['R_trunk'] = ddotR_d(data.qpos[3:7], data.qvel[3:6], ref['R_d_root'], np.zeros(3), gains['Kp_q'], gains['Kd_q'])
     return des_acc
 
-def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, weights, refs, nv1, nu, nforce, qp, qpproblem):
+def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, Jc, jacs, ee_ids, vmapu, weights, des_acc, nv1, nu, nforce, qp, qpproblem):
     ntau = nu
     nv = M1.shape[1]
+    nc = Jc.shape[0]
     # Assume arrangement
     # [tau,ddq_1, ddq_2, lambda] 
     qpproblem.H = np.zeros((ntau+nv+nforce, ntau+nv+nforce))
@@ -190,17 +192,22 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
     W5 = weights['q2']
     W6 = weights['forces']
 
-    ref1 = refs['com']
-    # ref2 = refs['joints_full']
-    ref5 = refs['joints']
+    ref1 = des_acc['com']
+    # ref2 = des_acc['joints_full']
+    ref4 = des_acc['R_trunk']
+    ref5 = des_acc['joints']
 
+    # [tau]
+    qpproblem.H[:nu, :nu] += W3 # tau
+    # [ddq1,ddq2]
     qpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J1.T@W1@J1 # ddq_2
     # qpqpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
     qpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J4.T@W4@J4 # ddq
-    qpproblem.H[:nu, :nu] += W3 # tau
+    # [ddq2]
     ddq_2 = [x + nu for x in vmapu]
     udof = np.ix_(ddq_2, ddq_2)
     qpproblem.H[udof] += J5.T@W5@J5 # ddq_2
+    # [forces]
     qpproblem.H[ntau+nv:ntau+nv+nforce, ntau+nv:ntau+nv+nforce] += W6
 
     # tmp
@@ -208,22 +215,24 @@ def setupQPSparseFullFullJacTwoArms(M1, M2, h1, h2, C1, jacs, ee_ids, vmapu, wei
 
     r1 = ref1@W1@J1
     # r2 = ref2@W2@J2
+    r4 = ref4@W4@J4
     r5 = ref5@W5@J5
 
     g[ntau:ntau+nv] += r1 # ddq
     # g[ntau:ntau+nv] += r2 # ddq
-    g[vmapu] += r5# ddq
-    __import__('pdb').set_trace()
+    g[ntau:ntau+nv] += r4 # ddq
+    g[vmapu] += r5 # ddq
 
-    qpproblem.A = np.zeros((nv, ntau+nv+nforce))
-    qpproblem.b = np.zeros(nv)
+    qpproblem.A = np.zeros((nv+nc, ntau+nv+nforce))
+    qpproblem.b = np.zeros(nv+nc)
 
     qpproblem.A[vmapu,0:ntau] += -np.eye(ntau,ntau) # tau
     qpproblem.A[0:nv1,ntau:ntau+nv] += M1 # ddq
     qpproblem.A[nv1:nv,ntau:ntau+nv] += M2 # ddq
     qpproblem.b[0:nv1] += -h1
     qpproblem.b[nv1:nv] += -h2
-    qpproblem.A[0:nv,ntau+nv:] += -C1.T # lambda
 
+    qpproblem.A[0:nv,ntau+nv:] += -Jc.T # lambda
+    qpproblem.A[nv:nv+nc,ntau:ntau+nv] += Jc # lambda
 
     qp.init(qpproblem.H, -g, qpproblem.A, qpproblem.b, qpproblem.C, qpproblem.l, qpproblem.u, qpproblem.l_box, qpproblem.u_box)

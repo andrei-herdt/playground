@@ -50,13 +50,18 @@ act_j_names = tf.get_actuated_names()
 vmapu = tf.get_vmapu(act_j_names, model)
 qmapu = tf.get_qmapu(act_j_names, model)
 udof = np.ix_(vmapu, vmapu)
-umapf: List[int] = [*range(nu+nv1+nu, nu+nv1+nu+3*ncontacts)]
+
+# maps from qp to physical
+# todo: move to qpproblem
+qpmapf: List[int] = [*range(nu+nv1+nu, nu+nv1+nu+3*ncontacts)]
+qpmapq: List[int] = [*range(nu, nu+nv)]
+qpmaptau: List[int] = [*range(0, nu)]
 
 mj_kinematics(model, data)
 mj_comPos(model, data)
 
 # Jacobians
-Ct = initialize_zero_array((3 * ncontacts, nv))
+Jc = initialize_zero_array((3 * ncontacts, nv))
 
 M = initialize_zero_array((nv, nv))
 
@@ -69,28 +74,26 @@ ee_ids = get_ee_body_ids(ee_names, model)
 ref = tf.create_references_dict(data, ee_ids, qmapu)
 gains = tf.create_gains_dict()
 
+# Move to fill_jacobians_dict
 for idx, name in enumerate(contacts):
     id: int = model.site(name).id
     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
     mj_jacSite(model, data, Cflt, Cflr, id)
-    Ct[3 * idx:3 * (idx + 1), :] = Cflt
+    Jc[3 * idx:3 * (idx + 1), :] = Cflt
 
 mj_fullM(model, M, data.qM)
 
 n = nu 
 n_eq: int = 0
 n_in: int = 0
-# qpproblem1 = QPProblem()
-# qpproblem2 = QPProblem()
-# qpproblemfull = QPProblem()
-qpproblemfullfulljac = QPProblem()
+qpp = QPProblem()
 
 qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
 nvar = nu+nv+3*ncontacts
 
 # qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
-# qpfullfulljac = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
+# qp = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 # Init box constraints
 l_box, u_box = initialize_box_constraints(nvar)
 # qpproblemfull.l_box = l_box
@@ -104,27 +107,33 @@ idx_fy = [nu + nv + 3*i+1 for i in range(ncontacts)]
 idx_fz = [nu + nv + 3*i+2 for i in range(ncontacts)]
 for idx in idx_fz:
     l_box[idx] = 0
+for idx in idx_fx:
+    l_box[idx] = -3
+    u_box[idx] = 3
+for idx in idx_fy:
+    l_box[idx] = -3
+    u_box[idx] = 3
 
 # qpproblemfull.l_box = l_box
 
 nineq = len(idx_fx)
 nineq = 0 # tmp: inequalities don't work
 mu = 0.5
-qpfullfulljac = proxqp.dense.QP(nvar, nv, nineq, True)
-qpproblemfullfulljac.l_box = l_box
-qpproblemfullfulljac.u_box = u_box
+qp = proxqp.dense.QP(nvar, nv + 3*ncontacts, nineq, True)
+qpp.l_box = l_box
+qpp.u_box = u_box
 
-qpproblemfullfulljac.C = np.zeros((nineq, nvar))
+qpp.C = np.zeros((nineq, nvar))
 for i in range(nineq):
-    qpproblemfullfulljac.C[i,idx_fx[i]] = 1
-    qpproblemfullfulljac.C[i,idx_fz[i]] = -mu
-qpproblemfullfulljac.l = np.ones(nineq) * 1e8
-qpproblemfullfulljac.u = np.zeros(nineq)
+    qpp.C[i,idx_fx[i]] = 1
+    qpp.C[i,idx_fz[i]] = -mu
+qpp.l = np.ones(nineq) * 1e8
+qpp.u = np.zeros(nineq)
 
 # set acc to zero for z,roll,pitch
 # for i in range(2, 5):
-#     qpproblemfullfulljac.l_box[nu + i] = 0
-#     qpproblemfullfulljac.u_box[nu + i] = 0
+#     qpp.l_box[nu + i] = 0
+#     qpp.u_box[nu + i] = 0
 
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
@@ -152,20 +161,20 @@ with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui
         t = time.time() - start
         des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu)
 
-        tf.setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Ct, jacs, ee_ids, vmapu, weights, des_acc, nv1, nu, 3*ncontacts, qpfullfulljac, qpproblemfullfulljac)
-        qpfullfulljac.solve()
+        tf.setupQPSparseFullFullJacTwoArms(dyn['M1full'], dyn['M2full'], dyn['h1full'], dyn['h2full'], Jc, jacs, ee_ids, vmapu, weights, des_acc, nv1, nu, 3*ncontacts, qp, qpp)
+        qp.solve()
 
-        tau_d = qpfullfulljac.results.x[:nu]
-        forces = qpfullfulljac.results.x[umapf]
-        print("fx: ", qpfullfulljac.results.x[idx_fx])
-        print("fy: ", qpfullfulljac.results.x[idx_fy])
-        print("fz: ", qpfullfulljac.results.x[idx_fz])
+        tau_d = qp.results.x[qpmaptau]
+        forces = qp.results.x[qpmapf]
+        ddq = qp.results.x[qpmapq]
+        print("fx: ", qp.results.x[idx_fx])
+        print("fy: ", qp.results.x[idx_fy])
+        print("fz: ", qp.results.x[idx_fz])
 
         data.ctrl = tau_d
 
         mj_step(model, data)
 
-        __import__('pdb').set_trace()
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.

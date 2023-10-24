@@ -48,13 +48,12 @@ def ddotq_d_full(p, v, p_delta, v_delta, p_d_root, R_d_root, q2_d, v_d, Kp_q, Kd
     p_err[vmapu] = q2_d
     v_d[:3] = v_delta
     # desired joint velocities are zero
-    __import__('pdb').set_trace()
     return -Kp_q * p_err - Kd_q * (v - v_d) 
 
-def ddotR_d(p, v, R_d_ee, dR_d_ee, Kp_r, Kd_r): 
+def ddotR_d(p, v, R_d, dR_d, Kp_r, Kd_r): 
     angerr = np.zeros(3)
-    mujoco.mju_subQuat(angerr, p, R_d_ee)
-    return -Kp_r * angerr - Kd_r * (v - dR_d_ee) 
+    mujoco.mju_subQuat(angerr, p, R_d)
+    return -Kp_r * angerr - Kd_r * (v - dR_d) 
 
 @dataclass
 class Perturbations:
