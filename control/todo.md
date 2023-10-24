@@ -1,5 +1,4 @@
-- [ ] Regularise forces
-- [ ] Constrain forces
+- [ ] check that gravity is accounted for
 - [ ] humanoid in space model
 - [ ] refactor old functions and make sure they still work (CI?)
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 

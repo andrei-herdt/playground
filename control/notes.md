@@ -168,3 +168,13 @@ $$f_x \leq \mu f_z$$
 $$-f_x \leq \mu f_z$$
 $$f_y \leq \mu f_z$$
 $$-f_y \leq \mu f_z$$
+
+## Non-penetration constraints
+With $J_c$ the contact jacobian, the unilateral conditions translate to:
+$$
+0 = J_c \ddot q + \dot J_c \dot q
+$$
+we ignore the jacobian derivative, to get:
+$$
+0 = J_c \ddot q.
+$$
