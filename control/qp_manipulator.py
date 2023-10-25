@@ -100,24 +100,15 @@ l_box, u_box = initialize_box_constraints(nvar)
 # qpproblemfull.u_box = u_box
 
 # Avoid tilting
-
 # tmp
+
 idx_fx = [nu + nv + 3*i+0 for i in range(ncontacts)]
 idx_fy = [nu + nv + 3*i+1 for i in range(ncontacts)]
 idx_fz = [nu + nv + 3*i+2 for i in range(ncontacts)]
 for idx in idx_fz:
     l_box[idx] = 0
-for idx in idx_fx:
-    l_box[idx] = -3
-    u_box[idx] = 3
-for idx in idx_fy:
-    l_box[idx] = -3
-    u_box[idx] = 3
-
-# qpproblemfull.l_box = l_box
 
 nineq = len(idx_fx)
-nineq = 0 # tmp: inequalities don't work
 mu = 0.5
 qp = proxqp.dense.QP(nvar, nv + 3*ncontacts, nineq, True)
 qpp.l_box = l_box
@@ -127,7 +118,7 @@ qpp.C = np.zeros((nineq, nvar))
 for i in range(nineq):
     qpp.C[i,idx_fx[i]] = 1
     qpp.C[i,idx_fz[i]] = -mu
-qpp.l = np.ones(nineq) * 1e8
+qpp.l = -np.ones(nineq) * 1e8
 qpp.u = np.zeros(nineq)
 
 # set acc to zero for z,roll,pitch
@@ -168,8 +159,8 @@ with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
         print("fx: ", qp.results.x[idx_fx])
-        print("fy: ", qp.results.x[idx_fy])
-        print("fz: ", qp.results.x[idx_fz])
+        # print("fy: ", qp.results.x[idx_fy])
+        # print("fz: ", qp.results.x[idx_fz])
 
         data.ctrl = tau_d
 
