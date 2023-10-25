@@ -15,7 +15,8 @@ from typing import List
 
 # import two_manip_wheel_base as tf
 # import humanoid as tf
-import quadruped as tf
+# import quadruped as tf
+import humanoid2 as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -41,6 +42,7 @@ nu: int = model.nu
 nv: int = model.nv
 nq0 = tf.nq0
 nv1 = tf.nv1
+qpnv = nv1+nu
 
 contacts = tf.get_list_of_contacts()
 ncontacts = len(contacts)
@@ -54,7 +56,7 @@ udof = np.ix_(vmapu, vmapu)
 # maps from qp to physical
 # todo: move to qpproblem
 qpmapf: List[int] = [*range(nu+nv1+nu, nu+nv1+nu+3*ncontacts)]
-qpmapq: List[int] = [*range(nu, nu+nv)]
+qpmapq: List[int] = [*range(nu, nu+qpnv)]
 qpmaptau: List[int] = [*range(0, nu)]
 
 mj_kinematics(model, data)
@@ -90,7 +92,7 @@ qpp = QPProblem()
 
 qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2*nu, nu, n_in, True)
-nvar = nu+nv+3*ncontacts
+nvar = nu+qpnv+3*ncontacts
 
 # qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
 # qp = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
@@ -102,15 +104,22 @@ l_box, u_box = initialize_box_constraints(nvar)
 # Avoid tilting
 # tmp
 
-idx_fx = [nu + nv + 3*i+0 for i in range(ncontacts)]
-idx_fy = [nu + nv + 3*i+1 for i in range(ncontacts)]
-idx_fz = [nu + nv + 3*i+2 for i in range(ncontacts)]
+idx_fx = [nu + qpnv + 3*i+0 for i in range(ncontacts)]
+idx_fy = [nu + qpnv + 3*i+1 for i in range(ncontacts)]
+idx_fz = [nu + qpnv + 3*i+2 for i in range(ncontacts)]
 for idx in idx_fz:
     l_box[idx] = 0
+# for idx in idx_fx:
+#     l_box[idx] = -3
+#     u_box[idx] = 3
+# for idx in idx_fy:
+#     l_box[idx] = -3
+#     u_box[idx] = 3
 
 nineq = len(idx_fx)
+# ninex = 0
 mu = 0.5
-qp = proxqp.dense.QP(nvar, nv + 3*ncontacts, nineq, True)
+qp = proxqp.dense.QP(nvar, qpnv + 3*ncontacts, nineq, True)
 qpp.l_box = l_box
 qpp.u_box = u_box
 
@@ -159,13 +168,14 @@ with mujoco.viewer.launch_passive(model, data, show_left_ui=False, show_right_ui
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
         print("fx: ", qp.results.x[idx_fx])
-        # print("fy: ", qp.results.x[idx_fy])
-        # print("fz: ", qp.results.x[idx_fz])
+        print("fy: ", qp.results.x[idx_fy])
+        print("fz: ", qp.results.x[idx_fz])
 
         data.ctrl = tau_d
 
         mj_step(model, data)
 
+        __import__('pdb').set_trace()
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.
