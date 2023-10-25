@@ -1,5 +1,7 @@
-- [ ] check that gravity is accounted for
-- [ ] humanoid in space model
+- [ ] replace bounds through inequalities
+- [ ] quadruped stability is not robust
+- [ ] so the scheme naturally explores large contact forces?
+- [ ] add a humanoid in space model and a test
 - [ ] refactor old functions and make sure they still work (CI?)
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 
 - [ ] simulation time-dependent, i.e. results differ when pc slows down
