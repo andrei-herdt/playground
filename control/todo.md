@@ -1,5 +1,8 @@
-- [ ] so the scheme naturally explores large contact forces?
-- [ ] add a humanoid in space model and a test
+- [ ] Do balancing on one leg
+- [ ] Make all the old models work
+- [ ] Refactor
+- [ ] Turn to sparse formulation and compare computation times
+
 - [ ] refactor old functions and make sure they still work (CI?)
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 
 - [ ] simulation time-dependent, i.e. results differ when pc slows down
@@ -27,6 +30,7 @@ General:
 
 
 ## Ideas for tests
+- add a humanoid in space model and a test
 - 3dof orientation error
 - manipulator with root stability of tasks
 - manipulator with root tracking accuracy
