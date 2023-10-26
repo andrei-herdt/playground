@@ -1,6 +1,5 @@
 - [ ] Make all the old models work
 - [ ] Refactor
-- [ ] Turn to sparse formulation and compare computation times
 
 - [ ] Do balancing on one leg
 - [ ] hierarchical (multiQP) formulation
