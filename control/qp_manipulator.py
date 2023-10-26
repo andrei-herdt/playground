@@ -20,18 +20,15 @@ from helpers import (
     initialize_box_constraints,
     create_jacobians_dict,
     fill_jacobians_dict,
-    Perturbations,
     get_dynamics,
-    create_figure,
-    draw_vectors,
 )
 from proxsuite import proxqp
 from typing import List
 
 # import two_manip_wheel_base as tf
-# import humanoid as tf
 # import quadruped as tf
-import robotis_op3 as tf
+import robotis_op3 as robot
+import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -39,7 +36,7 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
-model = MjModel.from_xml_path(tf.xml_model_path)
+model = MjModel.from_xml_path(robot.xml_model_path)
 # model.opt.gravity[2] = 0
 # model = mujoco.MjModel.from_xml_path(
 #     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
@@ -50,20 +47,20 @@ model = MjModel.from_xml_path(tf.xml_model_path)
 # model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = MjData(model)
 
-mj_resetDataKeyframe(model, data, tf.key_frame_id)
+mj_resetDataKeyframe(model, data, robot.key_frame_id)
 
 # Alias for model properties
 nu: int = model.nu
 nv: int = model.nv
-nq0 = tf.nq0
-nv1 = tf.nv1
+nq0 = robot.nq0
+nv1 = robot.nv1
 qpnv = nv1 + nu
 
-contacts = tf.get_list_of_contacts()
+contacts = robot.get_list_of_contacts()
 ncontacts = len(contacts)
 
 # Generate actuator mappings
-act_j_names = tf.get_actuated_names()
+act_j_names = robot.get_actuated_names()
 vmapu = tf.get_vmapu(act_j_names, model)
 qmapu = tf.get_qmapu(act_j_names, model)
 udof = np.ix_(vmapu, vmapu)
@@ -85,10 +82,10 @@ M = initialize_zero_array((nv, nv))
 # Initialize task matrices
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
-weights = tf.create_weights(nv1, nu, ncontacts)
-ee_names = tf.get_end_effector_names()
+weights = tf.create_weights(nv1, nu, ncontacts, robot.root_name)
+ee_names = tf.get_end_effector_names(robot.root_name)
 ee_ids = get_ee_body_ids(ee_names, model)
-ref = tf.create_references_dict(data, ee_ids, qmapu)
+ref = tf.create_references_dict(data, ee_ids, qmapu, robot.root_name)
 gains = tf.create_gains_dict()
 
 # Move to fill_jacobians_dict
@@ -164,7 +161,7 @@ with mujoco.viewer.launch_passive(
         step_start = time.time()
 
         fill_jacobians_dict(jacs, model, data)
-        state = tf.get_state(data, ee_ids, jacs, qmapu, vmapu)
+        state = tf.get_state(data, ee_ids, jacs, qmapu, vmapu, robot.root_name)
         dyn = get_dynamics(model, data, M, udof, vmapu, nv1)
 
         # Specific
@@ -194,6 +191,7 @@ with mujoco.viewer.launch_passive(
             3 * ncontacts,
             qp,
             qpp,
+            robot.root_name
         )
         qp.solve()
 

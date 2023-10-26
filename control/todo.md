@@ -1,7 +1,9 @@
-- [ ] Do balancing on one leg
 - [ ] Make all the old models work
 - [ ] Refactor
 - [ ] Turn to sparse formulation and compare computation times
+
+- [ ] Do balancing on one leg
+- [ ] hierarchical (multiQP) formulation
 
 - [ ] refactor old functions and make sure they still work (CI?)
 - [ ] Limit contact forces or base acceleration to understand why base is tilting 
@@ -36,3 +38,7 @@ General:
 - manipulator with root tracking accuracy
 - compare force vs no force results
 - compare sparse with dense
+
+## Roadmap
+- NMPC
+- RL
