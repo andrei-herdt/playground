@@ -1,3 +1,6 @@
+- [ ] Simplify model to have only two legs and base
+- [ ] Check force formulation
+- [ ] Try chatgpt plugin: github.com/jackmort/chatgpt.nvim  
 - [ ] fix symbols in neovim
 - [ ] push image to docker hub
 - [ ] enable selection via ctrl j/k and l
