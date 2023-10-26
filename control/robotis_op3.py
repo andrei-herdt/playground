@@ -2,7 +2,9 @@ import numpy as np
 from typing import Dict, Any, List
 from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
-xml_model_path: str = "/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml"
+xml_model_path: (
+    str
+) = "/workdir/playground/3rdparty/mujoco_menagerie/robotis_op3/scene.xml"
 key_frame_id: int = 0
 nq0 = 7
 nv1 = 6
