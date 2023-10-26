@@ -109,43 +109,16 @@ nvar = nu + qpnv + 3 * ncontacts
 # qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
 # qp = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
 # Init box constraints
-l_box, u_box = initialize_box_constraints(nvar)
+# l_box, u_box = initialize_box_constraints(nvar)
 # qpproblemfull.l_box = l_box
 # qpproblemfull.u_box = u_box
 
 # Avoid tilting
 # tmp
+nineq = 3*ncontacts
+qp = proxqp.sparse.QP(nvar, qpnv + 3 * ncontacts, nineq)
+qp.settings.compute_timings = True
 
-idx_fx = [nu + qpnv + 3 * i + 0 for i in range(ncontacts)]
-idx_fy = [nu + qpnv + 3 * i + 1 for i in range(ncontacts)]
-idx_fz = [nu + qpnv + 3 * i + 2 for i in range(ncontacts)]
-for idx in idx_fz:
-    l_box[idx] = 0
-# for idx in idx_fx:
-#     l_box[idx] = -3
-#     u_box[idx] = 3
-# for idx in idx_fy:
-#     l_box[idx] = -3
-#     u_box[idx] = 3
-
-nineq = len(idx_fx)
-# ninex = 0
-mu = 0.5
-qp = proxqp.dense.QP(nvar, qpnv + 3 * ncontacts, nineq, True)
-qpp.l_box = l_box
-qpp.u_box = u_box
-
-qpp.C = np.zeros((nineq, nvar))
-for i in range(nineq):
-    qpp.C[i, idx_fx[i]] = 1
-    qpp.C[i, idx_fz[i]] = -mu
-qpp.l = -np.ones(nineq) * 1e8
-qpp.u = np.zeros(nineq)
-
-# set acc to zero for z,roll,pitch
-# for i in range(2, 5):
-#     qpp.l_box[nu + i] = 0
-#     qpp.u_box[nu + i] = 0
 
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
@@ -198,9 +171,9 @@ with mujoco.viewer.launch_passive(
         tau_d = qp.results.x[qpmaptau]
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
-        print("fx: ", qp.results.x[idx_fx])
-        print("fy: ", qp.results.x[idx_fy])
-        print("fz: ", qp.results.x[idx_fz])
+        # print("fx: ", qp.results.x[idx_fx])
+        # print("fy: ", qp.results.x[idx_fy])
+        # print("fz: ", qp.results.x[idx_fz])
 
         data.ctrl = tau_d
 

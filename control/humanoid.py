@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse as spa
 from typing import Dict, Any, List
 from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
@@ -171,7 +172,7 @@ def compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu):
     return des_acc
 
 
-def setupQPSparseFullFullJacTwoArms(
+def setupQPDenseFullFullJacTwoArms(
     M1,
     M2,
     h1,
@@ -277,4 +278,140 @@ def setupQPSparseFullFullJacTwoArms(
         qpproblem.u,
         qpproblem.l_box,
         qpproblem.u_box,
+    )
+
+def setupQPSparseFullFullJacTwoArms(
+    M1,
+    M2,
+    h1,
+    h2,
+    Jc,
+    jacs,
+    ee_ids,
+    vmapu,
+    weights,
+    des_acc,
+    nv1,
+    nu,
+    nforce,
+    qp,
+    qpproblem,
+    root_name
+):
+    vmapv1 = [0, 1, 2, 3, 4, 5]
+    ntau = nu
+    # nv = M1.shape[1]
+    nv = nu + nv1
+    nc = Jc.shape[0]
+    # Assume arrangement
+    # [tau,ddq_1, ddq_2, lambda]
+    qpproblem.H = np.zeros((ntau + nv + nforce, ntau + nv + nforce))
+    g = np.zeros(ntau + nv + nforce)
+
+    vmap = vmapv1 + vmapu
+
+    J1 = jacs[ee_ids[root_name]]["t"][:, vmap]
+    # J2 = np.eye(nu+nv1,nu+nv1)[:,vmap]
+    J4 = jacs[ee_ids[root_name]]["r"][:, vmap]
+    J5 = np.eye(nu, nu)
+    Jc = Jc[:, vmap]
+
+    W1 = weights["com"]
+    # W2 = weights['q']
+    W3 = weights["tau"]
+    W4 = weights[root_name]
+    W5 = weights["q2"]
+    W6 = weights["forces"]
+
+    ref1 = des_acc["com"]
+    # ref2 = des_acc['joints_full']
+    ref4 = des_acc["R_root"]
+    ref5 = des_acc["joints"]
+
+    # [tau]
+    qpproblem.H[:nu, :nu] += W3  # tau
+    # [ddq1,ddq2]
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J1.T @ W1 @ J1  # ddq_2
+    # qpqpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J4.T @ W4 @ J4  # ddq
+    # [ddq2]
+    # ddq_2 = [x + nu for x in vmapu]
+    # udof = np.ix_(ddq_2, ddq_2)
+    # qpproblem.H[udof] += J5.T@W5@J5 # ddq_2
+    qpproblem.H[ntau + nv1 : ntau + nv1 + nu, ntau + nv1 : ntau + nv1 + nu] += (
+        J5.T @ W5 @ J5
+    )  # ddq_2
+    # [forces]
+    qpproblem.H[ntau + nv : ntau + nv + nforce, ntau + nv : ntau + nv + nforce] += W6
+
+    # tmp
+    # qpproblem.H[nu:nu+6, nu:nu+6] += 0.001 * np.identity(6) # tau
+
+    r1 = ref1 @ W1 @ J1
+    # r2 = ref2@W2@J2
+    r4 = ref4 @ W4 @ J4
+    r5 = ref5 @ W5 @ J5
+
+    g[ntau : ntau + nv] += r1  # ddq
+    # g[ntau:ntau+nv] += r2 # ddq
+    g[ntau : ntau + nv] += r4  # ddq
+    # g[vmapu] += r5 # ddq
+    g[ntau + nv1 : ntau + nv1 + nu] += r5  # ddq
+
+    qpproblem.A = np.zeros((nv + nc, ntau + nv + nforce))
+    qpproblem.b = np.zeros(nv + nc)
+
+    # qpproblem.A[vmapu,0:ntau] += -np.eye(ntau,ntau) # tau
+    # q1
+    qpproblem.A[0:nv1, ntau : ntau + nv] += M1[:, vmap]  # ddq
+    qpproblem.b[0:nv1] += -h1
+    # q2
+    qpproblem.A[nv1:nv, 0:ntau] += -np.eye(ntau, ntau)  # tau
+    rows = [x - nv1 for x in vmapu]
+    udof = np.ix_(rows, vmap)
+    qpproblem.A[nv1:nv, ntau : ntau + nv] += M2[udof]  # ddq
+    qpproblem.b[nv1:nv] += -h2[rows]
+    # forces
+    qpproblem.A[0:nv, ntau + nv :] += -Jc.T  # lambda
+    # non-penetration
+    qpproblem.A[nv : nv + nc, ntau : ntau + nv] += Jc  # lambda
+
+    # Inequalities
+    qpnv = nv1 + nu
+    ncontacts = 8 # hard-coded
+    idx_fx = [nu + qpnv + 3 * i + 0 for i in range(ncontacts)]
+    idx_fy = [nu + qpnv + 3 * i + 1 for i in range(ncontacts)]
+    idx_fz = [nu + qpnv + 3 * i + 2 for i in range(ncontacts)]
+
+    nineq = 3*len(idx_fx)
+    mu = 0.5 # friction coefficient
+
+    nvar = qp.model.dim
+    qpproblem.C = np.zeros((nineq, nvar))
+    qpproblem.l = np.zeros(nineq)
+    qpproblem.u = np.zeros(nineq)
+    for i in range(ncontacts):
+        #x
+        qpproblem.C[i, idx_fx[i]] = 1
+        qpproblem.C[i, idx_fz[i]] = -mu
+        qpproblem.l[i] = -1e8
+        qpproblem.u[i] = 0
+        #y
+        qpproblem.C[2*i, idx_fy[i]] = 1
+        qpproblem.C[2*i, idx_fz[i]] = -mu
+        qpproblem.l[2*i] = -1e8
+        qpproblem.u[2*i] = 0
+        #z
+        qpproblem.C[3*i, idx_fz[i]] = 1
+        qpproblem.l[3*i] = 0
+        qpproblem.u[3*i] = 1e8
+
+    qp.init(
+        spa.csc_matrix(qpproblem.H),
+        -g,
+        spa.csc_matrix(qpproblem.A),
+        qpproblem.b,
+        spa.csc_matrix(qpproblem.C),
+        qpproblem.l,
+        qpproblem.u,
     )
