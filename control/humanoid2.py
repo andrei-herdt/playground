@@ -4,7 +4,7 @@ from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
 # xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
 # key_frame_id: int = 0
-xml_model_path: str = '/workdir/playground/3rdparty/mujoco_menagerie/agility_cassie/scene.xml'
+xml_model_path: str = '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml'
 key_frame_id: int = 0
 nq0 = 7
 nv1 = 6
@@ -15,11 +15,15 @@ root_name = "torso"
 
 def get_actuated_names() -> List[str]:
     joint_names: List[str] = [\
-                              "left-hip-roll", "left-hip-yaw", \
-                              "left-hip-pitch", "left-knee", \
-                              "left-foot", "right-hip-roll", \
-                              "right-hip-yaw", "right-hip-pitch", \
-                              "right-knee", "right-foot"\
+                            "abdomen_y", "abdomen_z", "abdomen_x", \
+                            "hip_x_right", "hip_z_right", "hip_y_right", "knee_right", \
+                            "ankle_x_right", "ankle_y_right", \
+                            "hip_x_left", "hip_z_left", "hip_y_left", "knee_left", \
+                            "ankle_x_left", "ankle_y_left", \
+                            "shoulder1_right", "shoulder2_right", \
+                            "elbow_right", \
+                            "shoulder1_left", "shoulder2_left", \
+                            "elbow_left"\
                               ]
     return joint_names
 
@@ -127,7 +131,10 @@ def create_weights(nv1: int, nu: int, nc: int) -> dict:
 def get_list_of_contacts():
     # contacts: List[str] = ["fl_site_1", "fl_site_2", "fl_site_3", "fl_site_4", \
     #     "fr_site_1", "fr_site_2", "fr_site_3", "fr_site_4"]
-    contacts: List[str] = ["lfoot1", "lfoot2", "rfoot1", "rfoot2"]
+    contacts: List[str] = [\
+                           "lfoot1", "lfoot2", "lfoot3", "lfoot4",\
+                            "rfoot1", "rfoot2", "rfoot3", "rfoot4"\
+                          ]
     return contacts
 
 def get_end_effector_names():
