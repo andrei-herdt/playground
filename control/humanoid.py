@@ -165,14 +165,11 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
     des_acc["com"] = ddotx_c_d(
         task_states["com"]["p"], 
         task_states["com"]["dp"], 
-        x_d, v_d, 
-        gains["Kp_c"], gains["Kd_c"]
-    )
+        x_d, v_d, gains["Kp_c"], gains["Kd_c"])
     des_acc['ee'] = ddotx_c_d(
         task_states["ee"]["p"], 
         task_states["ee"]["dp"], 
         x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-
     des_acc['ee_left'] = ddotx_c_d(
         task_states["ee_left"]["p"], 
         task_states["ee_left"]["dp"], 
@@ -349,52 +346,70 @@ def setupQPSparseFullFullJacTwoArms(
     vmap = vmapv1 + vmapu
 
     J1 = jacs[ee_ids[root_name]]["t"][:, vmap]
-    # J2 = np.eye(nu+nv1,nu+nv1)[:,vmap]
     J4 = jacs[ee_ids[root_name]]["r"][:, vmap]
     J5 = np.eye(nu, nu)
     Jc = Jc[:, vmap]
 
+    J10 = jacs[ee_ids['ee']]['t']
+    J11 = jacs[ee_ids['ee_left']]['t']
+    J12 = jacs[ee_ids['ee']]['r']
+    J13 = jacs[ee_ids['ee_left']]['r']
+
     W1 = weights["com"]
-    # W2 = weights['q']
     W3 = weights["tau"]
     W4 = weights[root_name]
     W5 = weights["q2"]
     W6 = weights["forces"]
+
+    W10 = W1
+    W11 = W1
+    W12 = W1
+    W13 = W1
 
     ref1 = des_acc["com"]
     # ref2 = des_acc['joints_full']
     ref4 = des_acc["R_root"]
     ref5 = des_acc["joints"]
 
+    ref10 = des_acc['ee']
+    ref11 = des_acc['ee_left']
+    ref12 = des_acc['ee_R']
+    ref13 = des_acc['ee_R_left']
+
     # [tau]
     qpproblem.H[:nu, :nu] += W3  # tau
     # [ddq1,ddq2]
     qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J1.T @ W1 @ J1  # ddq_2
-    # qpqpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
     qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J4.T @ W4 @ J4  # ddq
+
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J10.T @ W10 @ J10  # ddq_2
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J11.T @ W11 @ J11  # ddq
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J12.T @ W12 @ J12  # ddq_2
+    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J13.T @ W13 @ J13  # ddq
     # [ddq2]
-    # ddq_2 = [x + nu for x in vmapu]
-    # udof = np.ix_(ddq_2, ddq_2)
-    # qpproblem.H[udof] += J5.T@W5@J5 # ddq_2
     qpproblem.H[ntau + nv1 : ntau + nv1 + nu, ntau + nv1 : ntau + nv1 + nu] += (
         J5.T @ W5 @ J5
     )  # ddq_2
     # [forces]
     qpproblem.H[ntau + nv : ntau + nv + nforces, ntau + nv : ntau + nv + nforces] += W6
 
-    # tmp
-    # qpproblem.H[nu:nu+6, nu:nu+6] += 0.001 * np.identity(6) # tau
-
     r1 = ref1 @ W1 @ J1
-    # r2 = ref2@W2@J2
     r4 = ref4 @ W4 @ J4
     r5 = ref5 @ W5 @ J5
 
+    r10 = ref10 @ W10 @ J10
+    r11 = ref11 @ W11 @ J11
+    r12 = ref12 @ W12 @ J12
+    r13 = ref13 @ W13 @ J13
+
     g[ntau : ntau + nv] += r1  # ddq
-    # g[ntau:ntau+nv] += r2 # ddq
     g[ntau : ntau + nv] += r4  # ddq
-    # g[vmapu] += r5 # ddq
     g[ntau + nv1 : ntau + nv1 + nu] += r5  # ddq
+
+    g[ntau : ntau + nv] += r10  # ddq
+    g[ntau : ntau + nv] += r11  # ddq
+    g[ntau : ntau + nv] += r12  # ddq
+    g[ntau : ntau + nv] += r13  # ddq
 
     qpproblem.A = np.zeros((nv + nc, ntau + nv + nforces))
     qpproblem.b = np.zeros(nv + nc)
