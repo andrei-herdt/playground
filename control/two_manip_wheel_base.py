@@ -123,6 +123,11 @@ def get_end_effector_names():
     names: List[str] = ["ee", "ee_left", "wheel_base"]
     return names
 
+@dataclass
+class State:
+    p: Any
+    v: Any
+
 def get_state(data, 
             ee_ids: Dict[str, int], 
             jacs: Dict[int, Dict[str, np.ndarray]], 

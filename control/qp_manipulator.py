@@ -83,7 +83,7 @@ M = initialize_zero_array((nv, nv))
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
 weights = tf.create_weights(nv1, nu, ncontacts, robot.root_name)
-ee_names = tf.get_end_effector_names(robot.root_name)
+ee_names = robot.get_end_effector_names()
 ee_ids = get_ee_body_ids(ee_names, model)
 ref = tf.create_references_dict(data, ee_ids, qmapu, robot.root_name)
 gains = tf.create_gains_dict()
@@ -125,7 +125,7 @@ with mujoco.viewer.launch_passive(
         step_start = time.time()
 
         fill_jacobians_dict(jacs, model, data)
-        state = tf.get_state(data, ee_ids, jacs, qmapu, vmapu, robot.root_name)
+        task_states = tf.get_task_states(data, ee_ids, jacs, qmapu, vmapu, robot.root_name)
         dyn = get_dynamics(model, data, M, udof, vmapu, nv1)
 
         # Specific
@@ -137,7 +137,7 @@ with mujoco.viewer.launch_passive(
 
         # Define References
         t = time.time() - start
-        des_acc = tf.compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu)
+        des_acc = tf.compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu)
 
         tf.setupQPSparseFullFullJacTwoArms(
             dyn["M1full"],

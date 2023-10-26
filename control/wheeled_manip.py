@@ -47,3 +47,7 @@ def get_actuated_names() -> List[str]:
         "joint_11",
     ]
     return joint_names
+
+def get_end_effector_names():
+    names: List[str] = [root_name, "ee", "ee_left"]
+    return names

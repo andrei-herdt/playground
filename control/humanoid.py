@@ -59,6 +59,10 @@ def create_references_dict(data, ee_ids, qmapu, root_name) -> Dict[str, Any]:
     q2_d: np.ndarray = data.qpos[qmapu].copy()
     p_d_root: np.ndarray = data.body(ee_ids[root_name]).xpos.copy()
     R_d_root: np.ndarray = data.body(ee_ids[root_name]).xquat.copy()
+    p_d_ee: np.ndarray = data.body(ee_ids["ee"]).xpos.copy()
+    R_d_ee: np.ndarray = data.body(ee_ids["ee"]).xquat.copy()
+    p_d_ee_left: np.ndarray = data.body(ee_ids["ee_left"]).xpos.copy()
+    R_d_ee_left: np.ndarray = data.body(ee_ids["ee_left"]).xquat.copy()
 
     # Store in a dictionary
     references_dict = {
@@ -67,6 +71,10 @@ def create_references_dict(data, ee_ids, qmapu, root_name) -> Dict[str, Any]:
         "q2_d": q2_d,
         "p_d_root": p_d_root,
         "R_d_root": R_d_root,
+        "p_d_ee": p_d_ee,
+        "R_d_ee": R_d_ee,
+        "p_d_ee_left": p_d_ee_left,
+        "R_d_ee_left": R_d_ee_left,
     }
 
     return references_dict
@@ -104,54 +112,83 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     }
     return weights_dict
 
-def get_end_effector_names(root_name):
-    names: List[str] = [root_name]
-    return names
-
-
-def get_state(
+def get_task_states(
     data,
     ee_ids: Dict[str, int],
     jacs: Dict[int, Dict[str, np.ndarray]],
     qmapu: np.ndarray,
     vmapu: np.ndarray,
     root_name: str
-) -> Dict[str, Any]:
-    """Retrieve the states for all end effectors and return in a single dictionary.
-
-    Args:
-        data: The simulation data.
-        ee_ids (Dict[str, int]): A dictionary mapping end effector names to their IDs.
-        jacs (Dict[int, Dict[str, np.ndarray]]): A dictionary containing Jacobians for the end effectors.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing state information for all end effectors.
-    """
+) -> Dict[str, Dict[str, Any]]:
+    task_states: Dict[str, Dict[str, Any]] = {}
+    body_name = root_name
     state = {
-        "com": data.subtree_com[ee_ids[root_name]],
-        "dcom": data.subtree_linvel[ee_ids[root_name]],
-        "angvel": jacs[ee_ids[root_name]]["r"] @ data.qvel,
-        "R_root": data.body(ee_ids[root_name]).xquat,
+        "p": data.subtree_com[ee_ids[body_name]],
+        "dp": data.subtree_linvel[ee_ids[body_name]],
+        "R": data.body(ee_ids[body_name]).xquat,
+        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
+    }
+    task_states["com"] = state
+    # ee
+    body_name = "ee"
+    state = {
+        "p": data.body(ee_ids[body_name]).xpos,
+        "dp": jacs[ee_ids[body_name]]["t"] @ data.qvel,
+        "R": data.body(ee_ids[body_name]).xquat,
+        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
+    }
+    task_states[body_name] = state
+    # ee_left
+    body_name = "ee_left"
+    state = {
+        "p": data.body(ee_ids[body_name]).xpos,
+        "dp": jacs[ee_ids[body_name]]["t"] @ data.qvel,
+        "R": data.body(ee_ids[body_name]).xquat,
+        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
+    }
+    task_states[body_name] = state
+    # posture
+    state = {
         "q2": data.qpos[qmapu],
         "v2": data.qvel[vmapu],
     }
+    task_states["posture"] = state
 
-    return state
+    return task_states
 
-
-def compute_des_acc(t, ref, gains, state, data, nu, nv1, vmapu):
+def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
     des_acc: Dict[str, np.ndarray] = {}
 
     r = 0.0
     f = 0.0
     (x_d, v_d) = circular_motion(t, ref["com"], r, f)
     des_acc["com"] = ddotx_c_d(
-        state["com"], state["dcom"], x_d, v_d, gains["Kp_c"], gains["Kd_c"]
+        task_states["com"]["p"], 
+        task_states["com"]["dp"], 
+        x_d, v_d, 
+        gains["Kp_c"], gains["Kd_c"]
     )
+    des_acc['ee'] = ddotx_c_d(
+        task_states["ee"]["p"], 
+        task_states["ee"]["dp"], 
+        x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+
+    des_acc['ee_left'] = ddotx_c_d(
+        task_states["ee_left"]["p"], 
+        task_states["ee_left"]["dp"], 
+        x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+    des_acc['ee_R'] = ddotR_d(
+        task_states["ee"]["R"], 
+        task_states["ee"]["dR"], 
+        ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+    des_acc['ee_R_left'] = ddotR_d(
+        task_states["ee_left"]["R"], 
+        task_states["ee_left"]["dR"], 
+        ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
 
     des_acc["joints"] = ddotq_d(
-        state["q2"],
-        state["v2"],
+        task_states["posture"]["q2"],
+        task_states["posture"]["v2"],
         ref["q2_d"],
         np.zeros(nu),
         gains["Kp_q"],
