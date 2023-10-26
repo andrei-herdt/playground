@@ -31,7 +31,7 @@ from typing import List
 # import two_manip_wheel_base as tf
 # import humanoid as tf
 # import quadruped as tf
-import humanoid2 as tf
+import robotis_op3 as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
@@ -208,7 +208,6 @@ with mujoco.viewer.launch_passive(
 
         mj_step(model, data)
 
-        __import__("pdb").set_trace()
         viewer.sync()
 
         # Rudimentary time keeping, will drift relative to wall clock.
