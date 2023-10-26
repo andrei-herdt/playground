@@ -27,7 +27,7 @@ from typing import List
 
 # import two_manip_wheel_base as tf
 # import quadruped as tf
-import robotis_op3 as robot
+import wheeled_manip as robot
 import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
@@ -106,19 +106,10 @@ qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
 qp2 = proxqp.dense.QP(2 * nu, nu, n_in, True)
 nvar = nu + qpnv + 3 * ncontacts
 
-# qpfull = proxqp.dense.QP(nvar, nv1+nu+nv1, n_in, True)
-# qp = proxqp.dense.QP(nv1+2*nu+3*ncontacts, nv1+nu, n_in, True)
-# Init box constraints
-# l_box, u_box = initialize_box_constraints(nvar)
-# qpproblemfull.l_box = l_box
-# qpproblemfull.u_box = u_box
-
 # Avoid tilting
-# tmp
 nineq = 3*ncontacts
 qp = proxqp.sparse.QP(nvar, qpnv + 3 * ncontacts, nineq)
 qp.settings.compute_timings = True
-
 
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
@@ -161,7 +152,7 @@ with mujoco.viewer.launch_passive(
             des_acc,
             nv1,
             nu,
-            3 * ncontacts,
+            ncontacts,
             qp,
             qpp,
             robot.root_name
@@ -171,9 +162,6 @@ with mujoco.viewer.launch_passive(
         tau_d = qp.results.x[qpmaptau]
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
-        # print("fx: ", qp.results.x[idx_fx])
-        # print("fy: ", qp.results.x[idx_fy])
-        # print("fz: ", qp.results.x[idx_fz])
 
         data.ctrl = tau_d
 

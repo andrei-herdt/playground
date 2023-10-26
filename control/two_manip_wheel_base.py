@@ -111,7 +111,12 @@ def create_weights(nv1: int, nu: int) -> dict:
     return weights_dict
 
 def get_list_of_contacts():
-    contacts: List[str] = ["wheel_fl", "wheel_hl", "wheel_hr", "wheel_fr"]
+    contacts: List[str] = [
+        "wheel_fl",
+        "wheel_hl",
+        "wheel_hr",
+        "wheel_fr"
+    ]
     return contacts
 
 def get_end_effector_names():
@@ -157,7 +162,6 @@ def compute_des_acc(t, ref, gains, state, data, nu, nv0):
     des_acc['ee'] = ddotx_c_d(state['x_c'], state['dx_c'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
     (x_d, v_d) = circular_motion(t, ref['x_c_d_left'], r, f, -np.pi)
     des_acc['ee_left'] = ddotx_c_d(state['x_c_left'], state['dx_c_left'], x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-    __import__('pdb').set_trace()
     des_acc['joints'] = ddotq_d(state['q2'], state['v2'], ref['q2_d'], np.zeros(nu), gains['Kp_q'], gains['Kd_q'])
     des_acc['ee_R'] = ddotR_d(state['R_ee'], state['angvel'], ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
     des_acc['ee_R_left'] = ddotR_d(state['R_ee_left'], state['angvel_left'], ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])

@@ -293,7 +293,7 @@ def setupQPSparseFullFullJacTwoArms(
     des_acc,
     nv1,
     nu,
-    nforce,
+    ncontacts,
     qp,
     qpproblem,
     root_name
@@ -303,10 +303,11 @@ def setupQPSparseFullFullJacTwoArms(
     # nv = M1.shape[1]
     nv = nu + nv1
     nc = Jc.shape[0]
+    nforces = 3*ncontacts
     # Assume arrangement
     # [tau,ddq_1, ddq_2, lambda]
-    qpproblem.H = np.zeros((ntau + nv + nforce, ntau + nv + nforce))
-    g = np.zeros(ntau + nv + nforce)
+    qpproblem.H = np.zeros((ntau + nv + nforces, ntau + nv + nforces))
+    g = np.zeros(ntau + nv + nforces)
 
     vmap = vmapv1 + vmapu
 
@@ -342,7 +343,7 @@ def setupQPSparseFullFullJacTwoArms(
         J5.T @ W5 @ J5
     )  # ddq_2
     # [forces]
-    qpproblem.H[ntau + nv : ntau + nv + nforce, ntau + nv : ntau + nv + nforce] += W6
+    qpproblem.H[ntau + nv : ntau + nv + nforces, ntau + nv : ntau + nv + nforces] += W6
 
     # tmp
     # qpproblem.H[nu:nu+6, nu:nu+6] += 0.001 * np.identity(6) # tau
@@ -358,7 +359,7 @@ def setupQPSparseFullFullJacTwoArms(
     # g[vmapu] += r5 # ddq
     g[ntau + nv1 : ntau + nv1 + nu] += r5  # ddq
 
-    qpproblem.A = np.zeros((nv + nc, ntau + nv + nforce))
+    qpproblem.A = np.zeros((nv + nc, ntau + nv + nforces))
     qpproblem.b = np.zeros(nv + nc)
 
     # qpproblem.A[vmapu,0:ntau] += -np.eye(ntau,ntau) # tau
@@ -378,7 +379,6 @@ def setupQPSparseFullFullJacTwoArms(
 
     # Inequalities
     qpnv = nv1 + nu
-    ncontacts = 8 # hard-coded
     idx_fx = [nu + qpnv + 3 * i + 0 for i in range(ncontacts)]
     idx_fy = [nu + qpnv + 3 * i + 1 for i in range(ncontacts)]
     idx_fz = [nu + qpnv + 3 * i + 2 for i in range(ncontacts)]
