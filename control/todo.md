@@ -1,3 +1,5 @@
+- [ ] wheeled model doesn't work
+- [ ] why does the whole humanoid move?
 - [ ] Make all the old models work
 - [ ] Refactor
 
