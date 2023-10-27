@@ -374,27 +374,29 @@ def get_dynamics(
 
     return dyn
 
-
-def create_jacobians_dict(ee_ids: Dict[str, int], shape) -> Dict[str, Dict[str, Any]]:
+def create_jacobians_dict(shape, robot) -> Dict[str, Dict[str, Any]]:
     jacobians = {}
     # end effector jacobians
-    for _, id in ee_ids.items():
-        jacobians[id] = {"t": np.zeros(shape), "r": np.zeros(shape)}
+    for body_name in robot.get_end_effector_names():
+        jacobians[body_name] = {"t": np.zeros(shape), "r": np.zeros(shape)}
+    # com
+    jacobians["com"]= {"t": np.zeros(shape)}
 
     return jacobians
 
+def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data, robot):
+    # end effectors
+    for body_name in robot.get_end_effector_names():
+        mujoco.mj_jacBody(model, data, jacobians[body_name]["t"], jacobians[body_name]["r"], model.body(robot.root_name).id)
 
-def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data):
-    for id, jac in jacobians.items():
-        mujoco.mj_jacBody(model, data, jac["t"], jac["r"], id)
-
+    # com
+    mujoco.mj_jacSubtreeCom(model, data, jacobians["com"]["t"], model.body(robot.root_name).id)
 
 def create_figure():
     fig = plt.figure()
     plt.ion()
     plt.show()
     return fig
-
 
 def draw_vectors(fig, ncontacts: int, data: mujoco.MjData, forces: np.ndarray):
     force_mat = forces.reshape((-1, 3))

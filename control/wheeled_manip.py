@@ -13,6 +13,7 @@ root_name = "base_link"
 # todo: create struct of these
 # todo: add list of contacts to struct
 
+# todo: make simple list attribute
 def get_list_of_contacts():
     contacts: List[str] = [
         "wheel_fl",
@@ -22,6 +23,7 @@ def get_list_of_contacts():
     ]
     return contacts
 
+# todo: make simple list attribute
 def get_actuated_names() -> List[str]:
     joint_names: List[str] = [
         # left manip
@@ -48,6 +50,7 @@ def get_actuated_names() -> List[str]:
     ]
     return joint_names
 
+# todo: make simple list attribute
 def get_end_effector_names():
     names: List[str] = [root_name, "ee", "ee_left"]
     return names

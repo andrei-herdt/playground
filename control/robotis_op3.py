@@ -50,3 +50,7 @@ def get_actuated_names() -> List[str]:
         "r_ank_roll",
     ]
     return joint_names
+
+def get_end_effector_names():
+    names: List[str] = [root_name]
+    return names

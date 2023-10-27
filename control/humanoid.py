@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as spa
 from typing import Dict, Any, List
+# from control.robotis_op3 import get_end_effector_names
 from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
 def get_vmapu(joint_names: List[str], model) -> List[int]:
@@ -40,7 +41,7 @@ def create_gains_dict() -> Dict[str, float]:
     }
     return gains_dict
 
-def create_references_dict(data, ee_ids, qmapu, root_name) -> Dict[str, Any]:
+def create_references_dict(data, ee_ids, qmapu, robot) -> Dict[str, Any]:
     """
     Factory function to generate a references dictionary.
 
@@ -54,32 +55,27 @@ def create_references_dict(data, ee_ids, qmapu, root_name) -> Dict[str, Any]:
     """
 
     # Create references
-    x_c_d: np.ndarray = data.subtree_com[ee_ids[root_name]].copy()
-    dx_c_d: np.ndarray = data.subtree_linvel[ee_ids[root_name]].copy()
+    com: np.ndarray = data.subtree_com[ee_ids[robot.root_name]].copy()
     q2_d: np.ndarray = data.qpos[qmapu].copy()
-    p_d_root: np.ndarray = data.body(ee_ids[root_name]).xpos.copy()
-    R_d_root: np.ndarray = data.body(ee_ids[root_name]).xquat.copy()
-    p_d_ee: np.ndarray = data.body(ee_ids["ee"]).xpos.copy()
-    R_d_ee: np.ndarray = data.body(ee_ids["ee"]).xquat.copy()
-    p_d_ee_left: np.ndarray = data.body(ee_ids["ee_left"]).xpos.copy()
-    R_d_ee_left: np.ndarray = data.body(ee_ids["ee_left"]).xquat.copy()
 
     # Store in a dictionary
     references_dict = {
-        "com": x_c_d,
-        "dx_c_d": dx_c_d,
+        "com": com,
         "q2_d": q2_d,
-        "p_d_root": p_d_root,
-        "R_d_root": R_d_root,
-        "p_d_ee": p_d_ee,
-        "R_d_ee": R_d_ee,
-        "p_d_ee_left": p_d_ee_left,
-        "R_d_ee_left": R_d_ee_left,
     }
+
+    # SE3 references
+    ees = robot.get_end_effector_names()
+    for ee_name in ees:
+        references_dict[ee_name+"_p"]  = data.body(ee_ids[ee_name]).xpos.copy()
+        references_dict[ee_name+"_R"]  = data.body(ee_ids[ee_name]).xquat.copy()
 
     return references_dict
 
+
+# todo: Move 
 def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
+
     """
     Factory function to generate weights dictionary.
 
@@ -92,17 +88,18 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    com: np.ndarray = 1 * np.identity(3)  # EE pos task
     ee_p: np.ndarray = 1 * np.identity(3)  # EE pos task
     ee_R: np.ndarray = 1 * np.identity(3)  # EE pos task
     ee_left_p: np.ndarray = 1 * np.identity(3)  # EE pos task
     ee_left_R: np.ndarray = 1 * np.identity(3)  # EE pos task
+    root_name_p: np.ndarray = 0 * np.identity(3)  # EE orientation task
+    root_name_R: np.ndarray = 1 * np.identity(3)  # EE orientation task
 
+    com: np.ndarray = 1 * np.identity(3)  # EE pos task
     q2: np.ndarray = 1 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray = np.zeros((nv1 + nu, nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = 0.1 * np.identity(nu)  # tau
-    trunk: np.ndarray = 1 * np.identity(3)  # EE orientation task
     forces: np.ndarray = 0.001 * np.identity(3 * nc)
 
     # Create and return the dictionary
@@ -112,10 +109,11 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
         "ee_R": ee_R,
         "ee_left_p": ee_left_p,
         "ee_left_R": ee_left_R,
+        root_name+"_p": root_name_p,
+        root_name+"_R": root_name_R,
         "q2": q2,
         "q": q,
         "tau": tau,
-        root_name: trunk,
         "forces": forces,
     }
     return weights_dict
@@ -126,35 +124,25 @@ def get_task_states(
     jacs: Dict[int, Dict[str, np.ndarray]],
     qmapu: np.ndarray,
     vmapu: np.ndarray,
-    root_name: str
+    robot: Any
 ) -> Dict[str, Dict[str, Any]]:
     task_states: Dict[str, Dict[str, Any]] = {}
-    body_name = root_name
+
+    for body_name in robot.get_end_effector_names():
+        state = {
+            "p": data.body(ee_ids[body_name]).xpos,
+            "dp": jacs[body_name]["t"] @ data.qvel,
+            "R": data.body(ee_ids[body_name]).xquat,
+            "dR": jacs[body_name]["r"] @ data.qvel,
+        }
+        task_states[body_name] = state
+
+    # com
     state = {
         "p": data.subtree_com[ee_ids[body_name]],
         "dp": data.subtree_linvel[ee_ids[body_name]],
-        "R": data.body(ee_ids[body_name]).xquat,
-        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
     }
     task_states["com"] = state
-    # ee
-    body_name = "ee"
-    state = {
-        "p": data.body(ee_ids[body_name]).xpos,
-        "dp": jacs[ee_ids[body_name]]["t"] @ data.qvel,
-        "R": data.body(ee_ids[body_name]).xquat,
-        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
-    }
-    task_states[body_name] = state
-    # ee_left
-    body_name = "ee_left"
-    state = {
-        "p": data.body(ee_ids[body_name]).xpos,
-        "dp": jacs[ee_ids[body_name]]["t"] @ data.qvel,
-        "R": data.body(ee_ids[body_name]).xquat,
-        "dR": jacs[ee_ids[body_name]]["r"] @ data.qvel,
-    }
-    task_states[body_name] = state
     # posture
     state = {
         "q2": data.qpos[qmapu],
@@ -164,9 +152,10 @@ def get_task_states(
 
     return task_states
 
-def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
+def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu, robot):
     des_acc: Dict[str, np.ndarray] = {}
 
+    # com
     r = 0.0
     f = 0.0
     (x_d, v_d) = circular_motion(t, ref["com"], r, f)
@@ -175,32 +164,21 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
         task_states["com"]["dp"], 
         x_d, v_d, gains["Kp_c"], gains["Kd_c"])
 
-    r = 0.0
-    f = 0.0
-    (x_d, v_d) = circular_motion(t, ref["p_d_ee"], r, f)
-    des_acc['ee'] = ddotx_c_d(
-        task_states["ee"]["p"], 
-        task_states["ee"]["dp"], 
-        x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+    # end effectors
+    for body_name in robot.get_end_effector_names():
+        r = 0.0
+        f = 0.0
+        (x_d, v_d) = circular_motion(t, ref[body_name+"_p"], r, f)
+        des_acc[body_name+'_p'] = ddotx_c_d(
+            task_states[body_name]["p"], 
+            task_states[body_name]["dp"], 
+            x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+        des_acc[body_name+'_R'] = ddotR_d(
+            task_states[body_name]["R"], 
+            task_states[body_name]["dR"], 
+            ref[body_name+'_R'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
 
-    r = 0.0
-    f = 0.0
-    (x_d, v_d) = circular_motion(t, ref["p_d_ee_left"], r, f)
-    des_acc['ee_left'] = ddotx_c_d(
-        task_states["ee_left"]["p"], 
-        task_states["ee_left"]["dp"], 
-        x_d, v_d, gains['Kp_c'], gains['Kd_c'])
-
-    des_acc['ee_R'] = ddotR_d(
-        task_states["ee"]["R"], 
-        task_states["ee"]["dR"], 
-        ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-
-    des_acc['ee_R_left'] = ddotR_d(
-        task_states["ee_left"]["R"], 
-        task_states["ee_left"]["dR"], 
-        ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
-
+    # posture
     des_acc["q2"] = ddotq_d(
         task_states["posture"]["q2"],
         task_states["posture"]["v2"],
@@ -209,18 +187,7 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
         gains["Kp_q"],
         gains["Kd_q"],
     )
-    # r = .0
-    # f = .0
-    # (x_d, v_d) = circular_motion(t, np.zeros(3), r, f)
-    # des_acc['joints_full'] = ddotq_d_full(data.qpos, data.qvel, x_d, v_d, ref['p_d_root'], ref['R_d_root'], ref['q2_d'], np.zeros(nu+nv1), gains['Kp_q'], gains['Kd_q'], vmapu)
-    des_acc["R_root"] = ddotR_d(
-        data.qpos[3:7],
-        data.qvel[3:6],
-        ref["R_d_root"],
-        np.zeros(3),
-        gains["Kp_q"],
-        gains["Kd_q"],
-    )
+    
     return des_acc
 
 
@@ -254,16 +221,14 @@ def setupQPDenseFullFullJacTwoArms(
 
     vmap = vmapv1 + vmapu
 
-    J1 = jacs[ee_ids[root_name]]["t"][:, vmap]
+    J1 = jacs["com"]["t"][:, vmap]
     # J2 = np.eye(nu+nv1,nu+nv1)[:,vmap]
-    J4 = jacs[ee_ids[root_name]]["r"][:, vmap]
     J5 = np.eye(nu, nu)
     Jc = Jc[:, vmap]
 
     W1 = weights["com"]
     # W2 = weights['q']
     W3 = weights["tau"]
-    W4 = weights[root_name]
     W5 = weights["q2"]
     W6 = weights["forces"]
 
@@ -276,8 +241,7 @@ def setupQPDenseFullFullJacTwoArms(
     qpproblem.H[:nu, :nu] += W3  # tau
     # [ddq1,ddq2]
     qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J1.T @ W1 @ J1  # ddq_2
-    # qpqpproblem.H[ntau:ntau+nv, ntau:ntau+nv] += J2.T@W2@J2 # ddq
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J4.T @ W4 @ J4  # ddq
+    #
     # [ddq2]
     # ddq_2 = [x + nu for x in vmapu]
     # udof = np.ix_(ddq_2, ddq_2)
@@ -293,7 +257,6 @@ def setupQPDenseFullFullJacTwoArms(
 
     r1 = ref1 @ W1 @ J1
     # r2 = ref2@W2@J2
-    r4 = ref4 @ W4 @ J4
     r5 = ref5 @ W5 @ J5
 
     g[ntau : ntau + nv] += r1  # ddq
@@ -348,7 +311,7 @@ def setupQPSparseFullFullJacTwoArms(
     ncontacts,
     qp,
     qpproblem,
-    root_name
+    robot
 ):
     vmapv1 = [0, 1, 2, 3, 4, 5]
     ntau = nu
@@ -363,47 +326,26 @@ def setupQPSparseFullFullJacTwoArms(
 
     vmap = vmapv1 + vmapu
 
-    J1 = jacs[ee_ids[root_name]]["t"][:, vmap]
-    J4 = jacs[ee_ids[root_name]]["r"][:, vmap]
+    J1 = jacs["com"]["t"][:, vmap]
     J5 = np.eye(nu, nu)
     Jc = Jc[:, vmap]
 
-    J10 = jacs[ee_ids['ee']]['t']
-    J11 = jacs[ee_ids['ee_left']]['t']
-    J12 = jacs[ee_ids['ee']]['r']
-    J13 = jacs[ee_ids['ee_left']]['r']
 
     W1 = weights["com"]
     W3 = weights["tau"]
-    W4 = weights[root_name]
     W5 = weights["q2"]
     W6 = weights["forces"]
 
-    W10 = weights["ee_p"]
-    W11 = weights["ee_left_p"]
-    W12 = weights["ee_R"]
-    W13 = weights["ee_left_R"]
 
     ref1 = des_acc["com"]
-    # ref2 = des_acc['joints_full']
-    ref4 = des_acc["R_root"]
     ref5 = des_acc["q2"]
 
-    ref10 = des_acc['ee']
-    ref11 = des_acc['ee_left']
-    ref12 = des_acc['ee_R']
-    ref13 = des_acc['ee_R_left']
 
     # [tau]
     qpproblem.H[:nu, :nu] += W3  # tau
     # [ddq1,ddq2]
     qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J1.T @ W1 @ J1  # ddq_2
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J4.T @ W4 @ J4  # ddq
 
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J10.T @ W10 @ J10  # ddq_2
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J11.T @ W11 @ J11  # ddq
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J12.T @ W12 @ J12  # ddq_2
-    qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += J13.T @ W13 @ J13  # ddq
     # [ddq2]
     qpproblem.H[ntau + nv1 : ntau + nv1 + nu, ntau + nv1 : ntau + nv1 + nu] += (
         J5.T @ W5 @ J5
@@ -412,22 +354,25 @@ def setupQPSparseFullFullJacTwoArms(
     qpproblem.H[ntau + nv : ntau + nv + nforces, ntau + nv : ntau + nv + nforces] += W6
 
     r1 = ref1 @ W1 @ J1
-    r4 = ref4 @ W4 @ J4
     r5 = ref5 @ W5 @ J5
 
-    r10 = ref10 @ W10 @ J10
-    r11 = ref11 @ W11 @ J11
-    r12 = ref12 @ W12 @ J12
-    r13 = ref13 @ W13 @ J13
-
     g[ntau : ntau + nv] += r1  # ddq
-    g[ntau : ntau + nv] += r4  # ddq
     g[ntau + nv1 : ntau + nv1 + nu] += r5  # ddq
 
-    g[ntau : ntau + nv] += r10  # ddq
-    g[ntau : ntau + nv] += r11  # ddq
-    g[ntau : ntau + nv] += r12  # ddq
-    g[ntau : ntau + nv] += r13  # ddq
+    # SE3 tasks
+    for body_name in robot.get_end_effector_names():
+        Jt = jacs[body_name]['t']
+        Jr = jacs[body_name]['r']
+        Wt = weights[body_name+"_p"]
+        Wr = weights[body_name+"_R"]
+        qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += Jt.T @ Wt @ Jt
+        qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += Jr.T @ Wr @ Jr 
+        reft = des_acc[body_name+"_p"]
+        refr = des_acc[body_name+"_R"]
+        rt = reft @ Wt @ Jt
+        rr = refr @ Wr @ Jr
+        g[ntau : ntau + nv] += rt  # ddq
+        g[ntau : ntau + nv] += rr  # ddq
 
     qpproblem.A = np.zeros((nv + nc, ntau + nv + nforces))
     qpproblem.b = np.zeros(nv + nc)
