@@ -109,6 +109,10 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
         "ee_R": ee_R,
         "ee_left_p": ee_left_p,
         "ee_left_R": ee_left_R,
+        "r_el_link_p": ee_p,
+        "r_el_link_R": ee_R,
+        "l_el_link_p": ee_left_p,
+        "l_el_link_R": ee_left_R,
         root_name+"_p": root_name_p,
         root_name+"_R": root_name_R,
         "q2": q2,
@@ -166,8 +170,8 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu, robot):
 
     # end effectors
     for body_name in robot.get_end_effector_names():
-        r = 0.0
-        f = 0.0
+        r = 0.01
+        f = 0.1
         (x_d, v_d) = circular_motion(t, ref[body_name+"_p"], r, f)
         des_acc[body_name+'_p'] = ddotx_c_d(
             task_states[body_name]["p"], 

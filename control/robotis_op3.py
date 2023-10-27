@@ -52,5 +52,5 @@ def get_actuated_names() -> List[str]:
     return joint_names
 
 def get_end_effector_names():
-    names: List[str] = [root_name]
+    names: List[str] = [root_name, "r_el_link", "l_el_link"]
     return names
