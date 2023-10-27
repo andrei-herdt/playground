@@ -128,13 +128,6 @@ with mujoco.viewer.launch_passive(
         task_states = tf.get_task_states(data, ee_ids, jacs, qmapu, vmapu, robot.root_name)
         dyn = get_dynamics(model, data, M, udof, vmapu, nv1)
 
-        # Specific
-        # J1 = jacs[ee_ids['ee']]['t'][:,vmapu]
-        # J1_left = jacs[ee_ids['ee_left']]['t'][:,vmapu]
-        # J4 = jacs[ee_ids['ee']]['r'][:,vmapu]
-        # J4_left = jacs[ee_ids['ee_left']]['r'][:,vmapu]
-        # J2 = np.eye(nu, nu)
-
         # Define References
         t = time.time() - start
         des_acc = tf.compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu)

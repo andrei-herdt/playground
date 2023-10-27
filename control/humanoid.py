@@ -93,8 +93,12 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     """
     # Task weights
     com: np.ndarray = 1 * np.identity(3)  # EE pos task
-    wq2: float = 0
-    q2: np.ndarray = wq2 * np.identity(nu)  # ddq1,ddq2
+    ee_p: np.ndarray = 1 * np.identity(3)  # EE pos task
+    ee_R: np.ndarray = 1 * np.identity(3)  # EE pos task
+    ee_left_p: np.ndarray = 1 * np.identity(3)  # EE pos task
+    ee_left_R: np.ndarray = 1 * np.identity(3)  # EE pos task
+
+    q2: np.ndarray = 1 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray = np.zeros((nv1 + nu, nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = 0.1 * np.identity(nu)  # tau
@@ -104,6 +108,10 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     # Create and return the dictionary
     weights_dict = {
         "com": com,
+        "ee_p": ee_p,
+        "ee_R": ee_R,
+        "ee_left_p": ee_left_p,
+        "ee_left_R": ee_left_R,
         "q2": q2,
         "q": q,
         "tau": tau,
@@ -166,24 +174,34 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu):
         task_states["com"]["p"], 
         task_states["com"]["dp"], 
         x_d, v_d, gains["Kp_c"], gains["Kd_c"])
+
+    r = 0.0
+    f = 0.0
+    (x_d, v_d) = circular_motion(t, ref["p_d_ee"], r, f)
     des_acc['ee'] = ddotx_c_d(
         task_states["ee"]["p"], 
         task_states["ee"]["dp"], 
         x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+
+    r = 0.0
+    f = 0.0
+    (x_d, v_d) = circular_motion(t, ref["p_d_ee_left"], r, f)
     des_acc['ee_left'] = ddotx_c_d(
         task_states["ee_left"]["p"], 
         task_states["ee_left"]["dp"], 
         x_d, v_d, gains['Kp_c'], gains['Kd_c'])
+
     des_acc['ee_R'] = ddotR_d(
         task_states["ee"]["R"], 
         task_states["ee"]["dR"], 
         ref['R_d_ee'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
+
     des_acc['ee_R_left'] = ddotR_d(
         task_states["ee_left"]["R"], 
         task_states["ee_left"]["dR"], 
         ref['R_d_ee_left'], np.zeros(3), gains['Kp_r'], gains['Kd_r'])
 
-    des_acc["joints"] = ddotq_d(
+    des_acc["q2"] = ddotq_d(
         task_states["posture"]["q2"],
         task_states["posture"]["v2"],
         ref["q2_d"],
@@ -252,7 +270,7 @@ def setupQPDenseFullFullJacTwoArms(
     ref1 = des_acc["com"]
     # ref2 = des_acc['joints_full']
     ref4 = des_acc["R_root"]
-    ref5 = des_acc["joints"]
+    ref5 = des_acc["q2"]
 
     # [tau]
     qpproblem.H[:nu, :nu] += W3  # tau
@@ -361,15 +379,15 @@ def setupQPSparseFullFullJacTwoArms(
     W5 = weights["q2"]
     W6 = weights["forces"]
 
-    W10 = W1
-    W11 = W1
-    W12 = W1
-    W13 = W1
+    W10 = weights["ee_p"]
+    W11 = weights["ee_left_p"]
+    W12 = weights["ee_R"]
+    W13 = weights["ee_left_R"]
 
     ref1 = des_acc["com"]
     # ref2 = des_acc['joints_full']
     ref4 = des_acc["R_root"]
-    ref5 = des_acc["joints"]
+    ref5 = des_acc["q2"]
 
     ref10 = des_acc['ee']
     ref11 = des_acc['ee_left']
