@@ -26,6 +26,7 @@ from proxsuite import proxqp
 from typing import List
 
 # import wheeled_manip as robot
+
 import robotis_op3 as robot
 import humanoid as tf
 
@@ -96,17 +97,12 @@ for idx, name in enumerate(contacts):
 
 mj_fullM(model, M, data.qM)
 
-n = nu
-n_eq: int = 0
-n_in: int = 0
 qpp = QPProblem()
 
-qp1 = proxqp.dense.QP(n, n_eq, n_in, True)
-qp2 = proxqp.dense.QP(2 * nu, nu, n_in, True)
 nvar = nu + qpnv + 3 * ncontacts
 
 # Avoid tilting
-nineq = 3*ncontacts
+nineq = 3 * ncontacts
 qp = proxqp.sparse.QP(nvar, qpnv + 3 * ncontacts, nineq)
 qp.settings.compute_timings = True
 
@@ -129,7 +125,9 @@ with mujoco.viewer.launch_passive(
 
         # Define References
         t = time.time() - start
-        des_acc = tf.compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu, robot)
+        des_acc = tf.compute_des_acc(
+            t, ref, gains, task_states, data, nu, nv1, vmapu, robot
+        )
 
         tf.setupQPSparseFullFullJacTwoArms(
             dyn["M1full"],
@@ -147,7 +145,7 @@ with mujoco.viewer.launch_passive(
             ncontacts,
             qp,
             qpp,
-            robot
+            robot,
         )
         qp.solve()
 

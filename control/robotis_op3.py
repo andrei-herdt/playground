@@ -13,6 +13,7 @@ root_name = "body_link"
 # todo: create struct of these
 # todo: add list of contacts to struct
 
+
 def get_list_of_contacts():
     contacts: List[str] = [
         "lfoot1",
@@ -25,6 +26,7 @@ def get_list_of_contacts():
         "rfoot4",
     ]
     return contacts
+
 
 def get_actuated_names() -> List[str]:
     joint_names: List[str] = [
@@ -50,6 +52,7 @@ def get_actuated_names() -> List[str]:
         "r_ank_roll",
     ]
     return joint_names
+
 
 def get_end_effector_names():
     names: List[str] = [root_name, "r_el_link", "l_el_link"]

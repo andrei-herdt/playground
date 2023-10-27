@@ -16,9 +16,11 @@ def get_ee_body_ids(names: List[str], model) -> Dict[str, int]:
 def circular_motion(t, p0, r, f, offset=0):
     w = 2 * np.pi * f
     p_d = np.array(
-        [p0[0] + r * np.cos(w * t + offset), p0[1] + r * np.sin(w * t + offset), p0[2]]
+        # [p0[0] + r * np.cos(w * t + offset), p0[1] + r * np.sin(w * t + offset), p0[2]]
+        [p0[0], p0[1], p0[2] + r * np.sin(w * t + offset)]
     )
-    v_d = np.array([-w * r * np.sin(w * t + offset), w * r * np.cos(w * t + offset), 0])
+    # v_d = np.array([-w * r * np.sin(w * t + offset), w * r * np.cos(w * t + offset), 0])
+    v_d = np.array([0, 0, w * r * np.cos(w * t + offset)])
     return (p_d, v_d)
 
 
@@ -374,29 +376,41 @@ def get_dynamics(
 
     return dyn
 
+
 def create_jacobians_dict(shape, robot) -> Dict[str, Dict[str, Any]]:
     jacobians = {}
     # end effector jacobians
     for body_name in robot.get_end_effector_names():
         jacobians[body_name] = {"t": np.zeros(shape), "r": np.zeros(shape)}
     # com
-    jacobians["com"]= {"t": np.zeros(shape)}
+    jacobians["com"] = {"t": np.zeros(shape)}
 
     return jacobians
+
 
 def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data, robot):
     # end effectors
     for body_name in robot.get_end_effector_names():
-        mujoco.mj_jacBody(model, data, jacobians[body_name]["t"], jacobians[body_name]["r"], model.body(robot.root_name).id)
+        mujoco.mj_jacBody(
+            model,
+            data,
+            jacobians[body_name]["t"],
+            jacobians[body_name]["r"],
+            model.body(robot.root_name).id,
+        )
 
     # com
-    mujoco.mj_jacSubtreeCom(model, data, jacobians["com"]["t"], model.body(robot.root_name).id)
+    mujoco.mj_jacSubtreeCom(
+        model, data, jacobians["com"]["t"], model.body(robot.root_name).id
+    )
+
 
 def create_figure():
     fig = plt.figure()
     plt.ion()
     plt.show()
     return fig
+
 
 def draw_vectors(fig, ncontacts: int, data: mujoco.MjData, forces: np.ndarray):
     force_mat = forces.reshape((-1, 3))
@@ -411,14 +425,15 @@ def draw_vectors(fig, ncontacts: int, data: mujoco.MjData, forces: np.ndarray):
         ax.quiver(p[0], p[1], p[2], f[0], f[1], f[2])
         plt.draw()
 
+
 def get_strings_from_pointers(data: str, pointers: List[int]) -> List[str]:
     """
     Extracts substrings from a given string using a list of starting indices.
-    
+
     The substrings are assumed to be null-terminated. The function finds the substring
     for each pointer until a null character ('\0') is encountered or until the end
     of the string if no null character is found.
-    
+
     :param data: The input string from which substrings are to be extracted.
     :param pointers: A list of integers representing the starting indices of the substrings.
     :return: A list of substrings extracted from the input string.
@@ -426,11 +441,11 @@ def get_strings_from_pointers(data: str, pointers: List[int]) -> List[str]:
     result = []
     for pointer in pointers:
         if 0 <= pointer < len(data):  # Check if pointer is within the valid range
-            end = data.find('\x00', pointer)
+            end = data.find("\x00", pointer)
             if end != -1:
                 result.append(data[pointer:end])
             else:
                 result.append(data[pointer:])
         else:
-            result.append('')  # Append an empty string for invalid pointers
+            result.append("")  # Append an empty string for invalid pointers
     return result
