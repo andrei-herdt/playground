@@ -1,8 +1,6 @@
-- [ ] Simplify model to have only two legs and base
-- [ ] Check force formulation
-- [ ] Try chatgpt plugin: github.com/jackmort/chatgpt.nvim  
-- [ ] fix symbols in neovim
+- [ ] are symbols better displayed in alacrity?
 - [ ] push image to docker hub
+- [ ] change theme from dark to light
 - [ ] enable selection via ctrl j/k and l
 - [ ] export docker history to host
 - [ ] install killall
@@ -11,7 +9,6 @@
 - [ ] install j
 - [ ] Integrate clangformat into vim
 - [ ] Change theme of tmux and vim inside docker conveniently
-- [ ] Add surround plugin
    mount -t overlay overlay -o lowerdir=/opt/rootfs/,upperdir=/workdir/armchroot-upper/,workdir=/workdir/armchroot-work/ /workdir/armchroot
 ```
 - [ ] from vim to tmux jump doesn't work
