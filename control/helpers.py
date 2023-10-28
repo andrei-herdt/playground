@@ -396,7 +396,7 @@ def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data, robot
             data,
             jacobians[body_name]["t"],
             jacobians[body_name]["r"],
-            model.body(robot.root_name).id,
+            model.body(body_name).id,
         )
 
     # com
