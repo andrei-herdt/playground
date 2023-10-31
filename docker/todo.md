@@ -1,5 +1,10 @@
 - [ ] are symbols better displayed in alacrity?
 - [ ] install viag
+- [ ] Simplify model to have only two legs and base
+- [ ] CUDA backend failed to initialize: FAILED_PRECONDITION: No visible GPU devices.
+- [ ] Check force formulation
+- [ ] Try chatgpt plugin: github.com/jackmort/chatgpt.nvim  
+- [ ] fix symbols in neovim
 - [ ] push image to docker hub
 - [ ] export docker history to host
 - [ ] Make lazygit work in docker
