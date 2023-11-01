@@ -2,7 +2,10 @@ import numpy as np
 from typing import Dict, Any, List
 from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
-xml_model_path: str = "/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml"
+xml_model_path: (
+    str
+    # ) = "/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_on_wheels.xml"
+) = "/workdir/playground/3rdparty/kinova_mj_description/xml/two_manipulator_slides_on_wheels.xml"
 key_frame_id: int = 0
 nq0 = 7
 nv1 = 6
@@ -21,6 +24,8 @@ def get_list_of_contacts():
 # todo: make simple list attribute
 def get_actuated_names() -> List[str]:
     joint_names: List[str] = [
+        # slides
+        "lleg_slide",
         # left manip
         "joint_1_left",
         "joint_2_left",
@@ -29,6 +34,8 @@ def get_actuated_names() -> List[str]:
         "joint_5_left",
         "joint_6_left",
         "joint_7_left",
+        # slides
+        "rleg_slide",
         # right manip
         "joint_1",
         "joint_2",
