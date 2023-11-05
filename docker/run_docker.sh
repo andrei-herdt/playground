@@ -196,4 +196,5 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	--workdir /workdir/playground \
 	-e XAUTHORITY=$XAUTH \
 	-e DISPLAY=${DISPLAY} \
+	--runtime=nvidia \
 	${IMAGE}${DEVIMAGE}:$VERSION
