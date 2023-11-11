@@ -1,3 +1,16 @@
+# RL
+- [ ] Take a different robot
+- [ ] Express a different reward
+- [ ] Save policy
+- [ ] Play policy in sim
+
+# Suspended wall
+- [ ] Add suspended wall
+- [ ] Add suction force to end effectors
+- [ ] Move wall
+
+- [ ] Add quadruped with arm
+
 - [ ] check meaning of diaginertia
 - [ ] meaning of <default> </default> in mujoco xml
 - [ ] wheeled model doesn't work
