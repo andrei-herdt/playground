@@ -197,4 +197,5 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	-e XAUTHORITY=$XAUTH \
 	-e DISPLAY=${DISPLAY} \
 	--runtime=nvidia \
+	--ipc=host \
 	${IMAGE}${DEVIMAGE}:$VERSION
