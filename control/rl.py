@@ -20,6 +20,10 @@ from ml_collections import config_dict
 import mujoco
 from mujoco import mjx
 
+from absl import logging
+
+logging.set_verbosity(logging.INFO)
+
 
 @struct.dataclass
 class State(Base):
@@ -126,6 +130,7 @@ class Humanoid(MjxEnv):
         exclude_current_positions_from_observation=True,
         **kwargs,
     ):
+        print("init")
         path = epath.Path(epath.resource_path("mujoco")) / (
             "mjx/benchmark/model/humanoid"
         )
@@ -149,6 +154,7 @@ class Humanoid(MjxEnv):
         )
 
     def reset(self, rng: jp.ndarray) -> State:
+        print("reset")
         """Resets the environment to an initial state."""
         rng, rng1, rng2 = jax.random.split(rng, 3)
 
@@ -176,6 +182,7 @@ class Humanoid(MjxEnv):
         return State(data, obs, reward, done, metrics)
 
     def step(self, state: State, action: jp.ndarray) -> State:
+        print("step")
         """Runs one timestep of the environment's dynamics."""
         data0 = state.pipeline_state
         data = self.pipeline_step(data0, action)
@@ -213,6 +220,7 @@ class Humanoid(MjxEnv):
         return state.replace(pipeline_state=data, obs=obs, reward=reward, done=done)
 
     def _get_obs(self, data: mjx.Data, action: jp.ndarray) -> jp.ndarray:
+        print("get_obs")
         """Observes humanoid body position, velocities, and angles."""
         position = data.qpos
         if self._exclude_current_positions_from_observation:
@@ -231,7 +239,6 @@ class Humanoid(MjxEnv):
 
 
 envs.register_environment("humanoid", Humanoid)
-__import__("pdb").set_trace()
 
 # instantiate the environment
 env_name = "humanoid"
