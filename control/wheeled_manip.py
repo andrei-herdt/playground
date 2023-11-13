@@ -11,6 +11,12 @@ root_name = "base_link"
 # todo: create struct of these
 # todo: add list of contacts to struct
 
+nu: int = 18
+nv: int = 24
+nq0 = 7  # TODO: rename to nq1
+nv1 = 6
+qpnv = nv1 + nu
+
 
 # todo: make simple list attribute
 def get_list_of_contacts():

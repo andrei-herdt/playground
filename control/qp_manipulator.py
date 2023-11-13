@@ -25,8 +25,8 @@ from helpers import (
 from proxsuite import proxqp
 from typing import List
 
-import wheeled_slides_manip as robot
-# import wheeled_manip as robot
+# import wheeled_slides_manip as robot
+import wheeled_manip as robot
 
 # import robotis_op3 as robot
 import humanoid as tf
@@ -51,11 +51,11 @@ data = MjData(model)
 mj_resetDataKeyframe(model, data, robot.key_frame_id)
 
 # Alias for model properties
-nu: int = model.nu
+nu: int = robot.nu
 nv: int = model.nv
 nq0 = robot.nq0
 nv1 = robot.nv1
-qpnv = nv1 + nu
+qpnv = robot.qpnv
 
 contacts = robot.get_list_of_contacts()
 ncontacts = len(contacts)
