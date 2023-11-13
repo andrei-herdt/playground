@@ -33,19 +33,7 @@ import humanoid as tf
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/kinova_mj_description/xml/gen3_7dof_mujoco.xml')
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/kinova_mj_description/xml/manipulator_on_wheels.xml')
 model = MjModel.from_xml_path(robot.xml_model_path)
-# model.opt.gravity[2] = 0
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/mujoco/model/humanoid/humanoid.xml')
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base_with_deck.xml')
-# model = mujoco.MjModel.from_xml_path(
-#     '/workdir/playground/3rdparty/kinova_mj_description/xml/wheel_base.xml')
-# model = mujoco.MjModel.from_xml_path('3dof.xml')
 data = MjData(model)
 
 mj_resetDataKeyframe(model, data, robot.key_frame_id)
