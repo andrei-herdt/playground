@@ -26,6 +26,7 @@ from proxsuite import proxqp
 from typing import List
 
 # import wheeled_slides_manip as robot
+#
 import wheeled_manip as robot
 
 # import robotis_op3 as robot
@@ -164,7 +165,7 @@ with mujoco.viewer.launch_passive(
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
 
-        data.ctrl = tau_d
+        data.ctrl[: len(tau_d)] = tau_d
 
         mj_step(model, data)
 
