@@ -27,11 +27,11 @@ from typing import List
 
 # import wheeled_slides_manip as robot
 #
-import wheeled_manip as robot
+import quadruped as robot
+# import wheeled_manip as robot
 
 # import robotis_op3 as robot
 import humanoid as tf
-
 
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
@@ -80,22 +80,22 @@ ee_ids = get_ee_body_ids(ee_names, model)
 ref = tf.create_references_dict(data, ee_ids, qmapu, robot)
 gains = tf.create_gains_dict()
 
-# Make square reference
-orig_pos = ref['ee_p'].copy()
-positions = [orig_pos.copy() for _ in range(4)]
-# RT
-positions[0][2] += 0.1
-positions[0][1] -= 0.1
-# LT
-positions[1][2] += 0.1
-positions[1][1] += 0.1
-# LB
-positions[2][2] -= 0.1
-positions[2][1] += 0.1
-# RB
-positions[3][2] -= 0.1
-positions[3][1] -= 0.1
-seq = PosSequence(positions)
+# # Make square reference
+# orig_pos = ref["ee_p"].copy()
+# positions = [orig_pos.copy() for _ in range(4)]
+# # RT
+# positions[0][2] += 0.1
+# positions[0][1] -= 0.1
+# # LT
+# positions[1][2] += 0.1
+# positions[1][1] += 0.1
+# # LB
+# positions[2][2] -= 0.1
+# positions[2][1] += 0.1
+# # RB
+# positions[3][2] -= 0.1
+# positions[3][1] -= 0.1
+# seq = PosSequence(positions)
 
 
 # Move to fill_jacobians_dict
@@ -134,7 +134,7 @@ with mujoco.viewer.launch_passive(
         dyn = get_dynamics(model, data, M, udof, vmapu, nv1)
 
         # Define References
-        ref['ee_p'] = seq.update(task_states['ee']['p']).copy()
+        # ref["ee_p"] = seq.update(task_states["ee"]["p"]).copy()
 
         t = time.time() - start
         des_acc = tf.compute_des_acc(
