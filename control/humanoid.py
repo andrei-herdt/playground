@@ -92,15 +92,15 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     - Dictionary containing the weight arrays.
     """
     # Task weights
-    ee_p: np.ndarray = 0 * np.identity(3)  # EE pos task
-    ee_R: np.ndarray = 0 * np.identity(3)  # EE pos task
-    ee_left_p: np.ndarray = 0 * np.identity(3)  # EE pos task
-    ee_left_R: np.ndarray = 0 * np.identity(3)  # EE pos task
+    ee_p: np.ndarray = 1 * np.identity(3)  # EE pos task
+    ee_R: np.ndarray = .1 * np.identity(3)  # EE pos task
+    ee_left_p: np.ndarray = 1 * np.identity(3)  # EE pos task
+    ee_left_R: np.ndarray = .1 * np.identity(3)  # EE pos task
     root_name_p: np.ndarray = 0 * np.identity(3)  # EE orientation task
     root_name_R: np.ndarray = 0 * np.identity(3)  # EE orientation task
 
     com: np.ndarray = 0 * np.identity(3)  # EE pos task
-    q2: np.ndarray = 1 * np.identity(nu)  # ddq1,ddq2
+    q2: np.ndarray = .1 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray = np.zeros((nv1 + nu, nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = 0.001 * np.identity(nu)  # tau
@@ -166,6 +166,7 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu, robot):
     des_acc: Dict[str, np.ndarray] = {}
 
     # com
+    # TODO: Get the reference generation out of here
     r = 0.0
     f = 0.0
     (x_d, v_d) = circular_motion(t, ref["com"], r, f)
@@ -183,8 +184,8 @@ def compute_des_acc(t, ref, gains, task_states, data, nu, nv1, vmapu, robot):
         r = 0.0
         f = 0.0
         if not body_name == robot.root_name:
-            r = 0.1
-            f = 0.2
+            r = 0.0
+            f = 0.0
         (x_d, v_d) = circular_motion(t, ref[body_name + "_p"], r, f)
         des_acc[body_name + "_p"] = ddotx_c_d(
             task_states[body_name]["p"],
