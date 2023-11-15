@@ -311,16 +311,9 @@ def progress(num_steps, metrics):
     x_data.append(num_steps)
     y_data.append(metrics["eval/episode_reward"])
     ydataerr.append(metrics["eval/episode_reward_std"])
-
-    plt.xlim([0, train_fn.keywords["num_timesteps"] * 1.25])
-    plt.ylim([min_y, max_y])
-
-    plt.xlabel("# environment steps")
-    plt.ylabel("reward per episode")
-    plt.title(f"y={y_data[-1]:.3f}")
-
-    plt.errorbar(x_data, y_data, yerr=ydataerr)
-    plt.show()
+    print("num_steps: ", num_steps)
+    print("eval/episode_reward: ", metrics["eval/episode_reward"])
+    print("eval/episode_reward_std: ", metrics["eval/episode_reward_std"])
 
 
 make_inference_fn, params, _ = train_fn(environment=env, progress_fn=progress)
