@@ -280,8 +280,8 @@ def setupQPSparseFullFullJacTwoArms(
 
     # SE3 tasks
     for body_name in robot.get_end_effector_names():
-        Jt = jacs[body_name]["t"]
-        Jr = jacs[body_name]["r"]
+        Jt = jacs[body_name]["t"][:, vmap]
+        Jr = jacs[body_name]["r"][:, vmap]
         Wt = weights[body_name + "_p"]
         Wr = weights[body_name + "_R"]
         qpproblem.H[ntau : ntau + nv, ntau : ntau + nv] += Jt.T @ Wt @ Jt
