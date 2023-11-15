@@ -8,6 +8,7 @@
 - [ ] Add suspended wall
 - [ ] Add suction force to end effectors
 - [ ] Move wall
+- [ ] Do derivatives reflect contact states? Add a site at contact position again?
 
 - [ ] Add quadruped with arm
 
