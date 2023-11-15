@@ -113,6 +113,7 @@ fi
 xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
 sudo chown -R "$(whoami)" $XSOCK $XAUTH
 GPUOPT="--device=/dev/dri/card0:/dev/dri/card0"
+RUNTIME=""
 
 if [ -f /usr/bin/nvidia-smi ]; then
 	## this is needed to support optimus - we can have nvidia drivers set up,
@@ -120,6 +121,7 @@ if [ -f /usr/bin/nvidia-smi ]; then
 	NVENV=$(glxinfo | grep "GL vendor string: NVIDIA")
 	if [ "${NVENV}" != "" ]; then
 		GPUOPT="--gpus all"
+		RUNTIME="--runtime=nvidia"
 	fi
 fi
 if [ $SSH -eq 1 ]; then
@@ -176,7 +178,7 @@ fi
 
 xhost +local:docker
 
-docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $GPUOPT \
+docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $GPUOPT $RUNTIME \
 	${NETWORKING} -ti \
 	-v $XSOCK:$XSOCK \
 	-v $XAUTH:$XAUTH \
@@ -196,6 +198,5 @@ docker run ${NAME} --privileged --shm-size=512m --cap-add=SYS_PTRACE --security-
 	--workdir /workdir/playground \
 	-e XAUTHORITY=$XAUTH \
 	-e DISPLAY=${DISPLAY} \
-	--runtime=nvidia \
 	--ipc=host \
 	${IMAGE}${DEVIMAGE}:$VERSION
