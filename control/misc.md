@@ -20,14 +20,8 @@ https://github.com/google-deepmind/mujoco/releases/download/3.0.0/mujoco-3.0.0-l
 https://github.com/Simple-Robotics/proxsuite/tree/main/examples/python
 
 # Render and save images
-
-```python
 renderer = mujoco.Renderer(model)
 renderer.update_scene(data, 'fixed')
 pixels_array = renderer.render().flatten()
 pixels = renderer.render()
 ````
-## Import the matplotlib.pyplot library as plt
-import matplotlib.pyplot as plt
-plt.imshow(pixels)
-plt.savefig("saved_image.jpg")
