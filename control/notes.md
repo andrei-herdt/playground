@@ -15,7 +15,7 @@ $$\begin{align}
 
 we get for the desired joint acceleration of the CoM task:
 $$\ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d),$$
-where $^{+}$ denotes a pseudo-inverse.
+where $^{*}$ denotes a pseudo-inverse.
 
 ### Considering dynamics
 We use the Lagrangian:
