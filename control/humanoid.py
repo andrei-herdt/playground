@@ -75,10 +75,12 @@ def create_references_dict(data, ee_ids, qmapu, robot) -> Dict[str, Any]:
         references_dict[ee_name + "_p"] = data.body(ee_ids[ee_name]).xpos.copy()
         references_dict[ee_name + "_R"] = data.body(ee_ids[ee_name]).xquat.copy()
 
+    references_dict["ee_suck"] = 0
+
     return references_dict
 
 
-# todo: Move
+# todo: Move to task specifications
 def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     """
     Factory function to generate weights dictionary.
@@ -93,14 +95,14 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     """
     # Task weights
     ee_p: np.ndarray = 1 * np.identity(3)  # EE pos task
-    ee_R: np.ndarray = .1 * np.identity(3)  # EE pos task
+    ee_R: np.ndarray = 0.1 * np.identity(3)  # EE pos task
     ee_left_p: np.ndarray = 1 * np.identity(3)  # EE pos task
-    ee_left_R: np.ndarray = .1 * np.identity(3)  # EE pos task
+    ee_left_R: np.ndarray = 0.1 * np.identity(3)  # EE pos task
     root_name_p: np.ndarray = 0 * np.identity(3)  # EE orientation task
-    root_name_R: np.ndarray = 0 * np.identity(3)  # EE orientation task
+    root_name_R: np.ndarray = 1 * np.identity(3)  # EE orientation task
 
     com: np.ndarray = 0 * np.identity(3)  # EE pos task
-    q2: np.ndarray = .1 * np.identity(nu)  # ddq1,ddq2
+    q2: np.ndarray = 0.01 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray = np.zeros((nv1 + nu, nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
     tau: np.ndarray = 0.001 * np.identity(nu)  # tau
@@ -158,6 +160,8 @@ def get_task_states(
         "v2": data.qvel[vmapu],
     }
     task_states["posture"] = state
+
+    task_states["ee_force"] = data.sensor(0).data
 
     return task_states
 
