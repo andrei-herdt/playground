@@ -21,7 +21,7 @@ from helpers import (
     fill_jacobians_dict,
     get_dynamics,
 )
-from behaviors import MoveNode, SequenceNode
+from behaviors import MoveNode, SuckNode, SequenceNode, TouchNode
 from proxsuite import proxqp
 from typing import List
 
@@ -82,22 +82,12 @@ gains = tf.create_gains_dict()
 
 # Make square reference
 orig_pos = ref["ee_p"].copy()
-positions = [orig_pos.copy() for _ in range(4)]
-# RT
-positions[0][2] += 0.1
-positions[0][1] -= 0.1
+positions = [orig_pos.copy() for _ in range(1)]
 
-# LT
-positions[1][2] += 0.1
-positions[1][1] += 0.1
-# LB
-positions[2][2] -= 0.1
-positions[2][1] += 0.1
-# RB
-positions[3][2] -= 0.1
-positions[3][1] -= 0.1
+positions[0][0] += 0.1
 
-children = [MoveNode(position) for position in positions]
+children = [TouchNode(position) for position in positions]
+children.append(SuckNode())
 sequence_node = SequenceNode(children)
 
 
@@ -137,8 +127,8 @@ with mujoco.viewer.launch_passive(
         dyn = get_dynamics(model, data, M, udof, vmapu, nv1)
 
         # Define References
-        sequence_node.execute(task_states["ee"]["p"], ref["ee_p"])
-        print(ref["ee_p"])
+
+        sequence_node.execute(task_states, ref)
 
         t = time.time() - start
         des_acc = tf.compute_des_acc(
@@ -170,6 +160,7 @@ with mujoco.viewer.launch_passive(
         ddq = qp.results.x[qpmapq]
 
         data.ctrl[: len(tau_d)] = tau_d
+        data.ctrl[len(tau_d)] = ref["ee_suck"]
 
         mj_step(model, data)
 

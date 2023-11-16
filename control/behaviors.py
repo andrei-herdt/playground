@@ -1,17 +1,17 @@
 import numpy as np
-from typing import List
+from typing import List, Dict
 
 
 class BehaviorNode:
-    def pre_condition(self, *args, **kwargs):
-        return True
-
     def execute(self, *args, **kwargs):
-        if self.pre_condition(*args, **kwargs):
+        if self._pre_condition(*args, **kwargs):
             self._execute(*args, **kwargs)
             return self._post_condition(*args, **kwargs)
         else:
             return False
+
+    def _pre_condition(self, *args, **kwargs):
+        return True
 
     def _execute(self, *args, **kwargs):
         pass
@@ -25,21 +25,72 @@ class MoveNode(BehaviorNode):
         super().__init__()
         self.pos_des = pos_des.copy()
 
-    def execute(self, pos: np.ndarray, ref: np.ndarray):
-        if self.pre_condition(pos, ref):
-            self._execute(ref)
-            return self._post_condition(pos)
+    def execute(self, state: Dict, ref: Dict):
+        pos: np.ndarray = state["ee"]["p"]
+        if self._pre_condition(state, ref):
+            self._execute(state, ref)
+            return self._post_condition(state, ref)
         else:
             return False
 
-    def _execute(self, ref: np.ndarray):
-        ref[:] = self.pos_des.copy()
+    def _execute(self, state: Dict, ref: Dict):
+        ref["ee_p"][:] = self.pos_des.copy()
 
-    def _post_condition(self, pos: np.ndarray):
-        print("post_condition")
+    def _post_condition(self, state: Dict, ref: Dict):
+        pos: np.ndarray = state["ee"]["p"]
         dist = np.linalg.norm(self.pos_des - pos)
         if dist < 0.015:
-            print("dist: ", dist)
+            return True
+        else:
+            return False
+
+
+class TouchNode(BehaviorNode):
+    def __init__(self, pos_des: np.ndarray):
+        super().__init__()
+        self.pos_des = pos_des.copy()
+
+    def execute(self, state: Dict, ref: Dict):
+        pos: np.ndarray = state["ee"]["p"]
+        if self._pre_condition(state, ref):
+            self._execute(state, ref)
+            return self._post_condition(state, ref)
+        else:
+            return False
+
+    def _execute(self, state: Dict, ref: Dict):
+        ref["ee_p"][:] = self.pos_des.copy()
+
+    def _post_condition(self, state: Dict, ref: Dict):
+        if state["ee_force"][0] > 30:
+            return True
+        else:
+            return False
+
+
+class SuckNode(BehaviorNode):
+    def __init__(self):
+        super().__init__()
+        self.suction_value: float = 1
+
+    def execute(self, state: Dict, ref: Dict):
+        if self._pre_condition(state, ref):
+            self._execute(ref)
+            return self._post_condition(state, ref)
+        else:
+            return False
+
+    def _execute(self, ref: Dict):
+        ref["ee_suck"] = 1.0
+
+    def _pre_condition(self, state: Dict, ref: Dict):
+        if state["ee_force"][0] > 30:
+            return True
+        else:
+            return False
+
+    def _post_condition(self, state: Dict, ref: Dict):
+        if state["ee_force"][0] > 40.0:
             return True
         else:
             return False
@@ -57,13 +108,10 @@ class SequenceNode(BehaviorNode):
             self.child_id = 0
             self.status = False
             return self.status
-        print(self.status)
         self.status = self.children[self.child_id].execute(*args, **kwargs)
-        print(self.status)
         if self.status:
             self.status = False
             self.child_id = self.child_id + 1
-            print("incrementing")
 
 
 # TODO: Add test cases
