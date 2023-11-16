@@ -1,16 +1,5 @@
 github: https://github.com/andrei-herdt/playground/blob/master/control/notes.md
 
-# LQR based joint-space control
-We start with LQR in the joint space from the example [here](https://colab.research.google.com/github/deepmind/mujoco/blob/main/python/LQRipynb) 
-- [ ] If our task is expressed at acceleration level, and we are missing dynamic expressions, would an LQR formulation make sense?
-
-Here, we are purely controlling the positions of the base and the joints. 
-There is no consideration of contact forces or dynamics. 
-
-Let's see what the limitations of this controller are.
-We apply an increasing set of impulses to the root.
-- TODO: plot root positions
-
 ### Considering dynamics
 So far, the control is purely position-based.
 Let's start considering the dynamics.
