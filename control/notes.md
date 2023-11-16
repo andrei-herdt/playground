@@ -7,12 +7,10 @@ For the CoM task, we have:
 $$\ddot c_d = K_p(c_d-c) + K_d(\dot c_d - \dot c)$$
 
 With the following mapping between cartesian and joint spaces
-$$
-\begin{align}
+$$\begin{align}
 \dot c = J_c \dot q_2 \\
 \ddot c = J_c \ddot q_2 + \dot J_c \dot q_2,
-\end{align}
-$$
+\end{align}$$
 
 we get for the desired joint acceleration of the CoM task:
 $$\ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d),$$
