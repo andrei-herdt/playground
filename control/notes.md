@@ -1,22 +1,20 @@
 github: https://github.com/andrei-herdt/playground/blob/master/control/notes.md
 
-### Considering dynamics
-So far, the control is purely position-based.
-Let's start considering the dynamics.
-We want to be able to compensate for disturbances by generating angular momenta
-We exploit the coupling between the linear and angular momentum.
+### Task
+We define a task as a PD controller in either cartesian or joint space.
 
-We create a CoM position task:
+For the CoM task, we have:
 $$\ddot c_d = K_p(c_d-c) + K_d(\dot c_d - \dot c)$$
 
+With the following mapping between cartesian and joint spaces
 $$
 \begin{align}
 \dot c = J_c \dot q_2 \\
-\ddot c = J_c \ddot q_2 + \dot J_c \dot q_2
+\ddot c = J_c \ddot q_2 + \dot J_c \dot q_2,
 \end{align}
 $$
 
-This leads to:
+we get for the desired joint acceleration of the CoM task:
 $$\ddot q_d = J^{*}_c (\ddot c - \dot J_c \dot q_d),$$
 where $^{+}$ denotes a pseudo-inverse.
 
