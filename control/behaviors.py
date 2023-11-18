@@ -26,6 +26,7 @@ class MoveNode(BehaviorNode):
         self.pos_des = pos_des.copy()
 
     def execute(self, state: Dict, ref: Dict):
+        __import__("pdb").set_trace()
         pos: np.ndarray = state["ee"]["p"]
         if self._pre_condition(state, ref):
             self._execute(state, ref)
@@ -90,7 +91,7 @@ class SuckNode(BehaviorNode):
             return False
 
     def _post_condition(self, state: Dict, ref: Dict):
-        if state["ee_force"][0] > 40.0:
+        if state["ee_force"][0] > 100.0:
             return True
         else:
             return False

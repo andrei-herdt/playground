@@ -28,7 +28,8 @@ from typing import List
 # import wheeled_slides_manip as robot
 #
 # import quadruped as robot
-import wheeled_manip as robot
+import mantis as robot
+# import wheeled_manip as robot
 
 # import robotis_op3 as robot
 import humanoid as tf
@@ -72,6 +73,7 @@ Jc = initialize_zero_array((3 * ncontacts, nv))
 M = initialize_zero_array((nv, nv))
 
 # Initialize task matrices
+# TODO: remove
 A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
 weights = tf.create_weights(nv1, nu, ncontacts, robot.root_name)
@@ -81,17 +83,20 @@ ref = tf.create_references_dict(data, ee_ids, qmapu, robot)
 gains = tf.create_gains_dict()
 
 # Make square reference
-orig_pos = ref["ee_p"].copy()
-positions = [orig_pos.copy() for _ in range(1)]
-
-positions[0][0] += 0.1
-
-children = [TouchNode(position) for position in positions]
-children.append(SuckNode())
-sequence_node = SequenceNode(children)
+# orig_pos = ref["ee_p"].copy()
+# positions = [orig_pos.copy() for _ in range(1)]
+#
+# positions[0][0] += 0.1
+#
+# children = [TouchNode(position) for position in positions]
+# children.append(SuckNode())
+# positions[0][2] += 0.1
+# children.append(MoveNode(positions[0]))
+# sequence_node = SequenceNode(children)
 
 
 # Move to fill_jacobians_dict
+# TODO: Check
 for idx, name in enumerate(contacts):
     id: int = model.site(name).id
     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
@@ -109,6 +114,7 @@ nineq = 3 * ncontacts
 qp = proxqp.sparse.QP(nvar, qpnv + 3 * ncontacts, nineq)
 qp.settings.compute_timings = True
 
+# TODO: Remove
 Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
 
 jacs = create_jacobians_dict((3, nv), robot)
@@ -128,7 +134,7 @@ with mujoco.viewer.launch_passive(
 
         # Define References
 
-        sequence_node.execute(task_states, ref)
+        # sequence_node.execute(task_states, ref)
 
         t = time.time() - start
         des_acc = tf.compute_des_acc(
@@ -159,8 +165,9 @@ with mujoco.viewer.launch_passive(
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
 
+        # __import__("pdb").set_trace()
         data.ctrl[: len(tau_d)] = tau_d
-        data.ctrl[len(tau_d)] = ref["ee_suck"]
+        # data.ctrl[len(tau_d)] = ref["ee_suck"]
 
         mj_step(model, data)
 
