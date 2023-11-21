@@ -3,7 +3,9 @@ from typing import Dict, Any, List
 from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
 
 
-xml_model_path: str = "/workdir/mantis.urdf/urdf/mjmodel.xml"
+xml_model_path: (
+    str
+) = "/workdir/playground/3rdparty/mantisurdf/bodyonly/urdf/mjmodel.xml"
 key_frame_id: int = 0
 nq0 = 7
 nv1 = 6
