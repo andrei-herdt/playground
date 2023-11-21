@@ -7,3 +7,6 @@
 [submodule "3rdparty/mujoco_menagerie"]
 	path = 3rdparty/mujoco_menagerie
 	url = https://github.com/andrei-herdt/mujoco_menagerie.git
+[submodule "3rdparty/mantisurdf"]
+	path = 3rdparty/mantisurdf
+	url = git@git.core.funkflow.com:mobilerobotics/mantisurdf.git
