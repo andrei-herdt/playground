@@ -14,7 +14,7 @@ import functools
 import numpy as np
 
 import mujoco
-from mujoco import mj_step
+from mujoco import mj_step, mj_resetDataKeyframe, mjx
 import mujoco.viewer
 import time
 
@@ -44,6 +44,7 @@ jit_step = jax.jit(eval_env.step)
 
 model = eval_env.model
 data = mujoco.MjData(model)
+mj_resetDataKeyframe(model, data, 0)
 
 # @markdown Commands **only used for Barkour Env**:
 x_vel = 1.0  # @param {type: "number"}
@@ -54,13 +55,11 @@ the_command = jp.array([x_vel, y_vel, ang_vel])
 
 # initialize the state
 rng = jax.random.PRNGKey(0)
-state = jit_reset(rng)
-state.info["command"] = the_command
-rollout = [state]
 
 # grab a trajectory
 n_steps = 500
 render_every = 1
+ctrl = jp.zeros(model.nu)
 
 with mujoco.viewer.launch_passive(
     model, data, show_left_ui=False, show_right_ui=False
@@ -70,7 +69,8 @@ with mujoco.viewer.launch_passive(
         step_start = time.time()
 
         act_rng, rng = jax.random.split(rng)
-        ctrl, _ = jit_inference_fn(state.obs, act_rng)
+        obs = eval_env._get_obs(data.qpos, ctrl)
+        ctrl, _ = jit_inference_fn(obs, act_rng)
         data.ctrl = ctrl
 
         mj_step(model, data)
