@@ -4,6 +4,9 @@
 - [ ] Save policy
 - [ ] Play policy in sim
 
+# Robot model
+
+
 # Suspended wall
 - [ ] Add suspended wall
 - [ ] Add suction force to end effectors

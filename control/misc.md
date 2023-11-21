@@ -24,4 +24,3 @@ renderer = mujoco.Renderer(model)
 renderer.update_scene(data, 'fixed')
 pixels_array = renderer.render().flatten()
 pixels = renderer.render()
-````
