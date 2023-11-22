@@ -99,13 +99,13 @@ def create_weights(nv1: int, nu: int, nc: int, root_name: str) -> dict:
     ee_left_p: np.ndarray = 0 * np.identity(3)  # EE pos task
     ee_left_R: np.ndarray = 0.0 * np.identity(3)  # EE pos task
     root_name_p: np.ndarray = 0 * np.identity(3)  # EE orientation task
-    root_name_R: np.ndarray = 0.1 * np.identity(3)  # EE orientation task
+    root_name_R: np.ndarray = 1 * np.identity(3)  # EE orientation task
 
     com: np.ndarray = 1 * np.identity(3)  # EE pos task
-    q2: np.ndarray = 0.1 * np.identity(nu)  # ddq1,ddq2
+    q2: np.ndarray = 1 * np.identity(nu)  # ddq1,ddq2
     q: np.ndarray = np.zeros((nv1 + nu, nv1 + nu))  # ddq1,ddq2
     q[nv1:, nv1:] = 0 * np.identity(nu)  # ddq2
-    tau: np.ndarray = 0.001 * np.identity(nu)  # tau
+    tau: np.ndarray = 0.0001 * np.identity(nu)  # tau
     forces: np.ndarray = 0.001 * np.identity(3 * nc)
 
     # Create and return the dictionary
@@ -321,7 +321,7 @@ def setupQPSparseFullFullJacTwoArms(
     idx_fz = [nu + qpnv + 3 * i + 2 for i in range(ncontacts)]
 
     nineq = 3 * len(idx_fx)
-    mu = 0.25  # friction coefficient
+    mu = 0.2  # friction coefficient
 
     nvar = qp.model.dim
     qpproblem.C = np.zeros((nineq, nvar))

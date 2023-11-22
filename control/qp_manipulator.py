@@ -26,8 +26,8 @@ from proxsuite import proxqp
 from typing import List
 
 # import wheeled_slides_manip as robot
-import quadruped as robot
-# import standing_mantis_torque as robot
+# import quadruped as robot
+import standing_mantis_torque as robot
 
 # import wheeled_manip as robot
 # import robotis_op3 as robot
@@ -88,14 +88,6 @@ gains = tf.create_gains_dict()
 
 jacs = create_jacobians_dict(robot)
 
-# # Move to fill_jacobians_dict
-# # TODO: Check
-# for idx, name in enumerate(contacts):
-#     id: int = model.site(name).id
-#     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
-#     mj_jacSite(model, data, Cflt, Cflr, id)
-#     jacs["contacts"][3 * idx : 3 * (idx + 1), :] = Cflt
-
 mj_fullM(model, M, data.qM)
 
 qpp = QPProblem()
@@ -139,9 +131,9 @@ with mujoco.viewer.launch_passive(
             vmapu,
             weights,
             des_acc,
-            nv1,
-            nu,
-            ncontacts,
+            nv1,#TODO: remove me
+            nu,#TODO: remove me
+            ncontacts,#TODO: remove me
             qp,
             qpp,
             robot,

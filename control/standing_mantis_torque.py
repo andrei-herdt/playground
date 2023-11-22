@@ -1,6 +1,4 @@
-import numpy as np
-from typing import Dict, Any, List
-from helpers import circular_motion, ddotR_d, ddotx_c_d, ddotq_d, ddotq_d_full
+from typing import List
 
 
 xml_model_path: (
