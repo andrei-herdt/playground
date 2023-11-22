@@ -26,11 +26,10 @@ from proxsuite import proxqp
 from typing import List
 
 # import wheeled_slides_manip as robot
-#
 # import quadruped as robot
 import mantis as robot
-# import wheeled_manip as robot
 
+# import wheeled_manip as robot
 # import robotis_op3 as robot
 import humanoid as tf
 

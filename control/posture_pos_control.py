@@ -15,7 +15,8 @@ from typing import List
 
 # import wheeled_slides_manip as robot
 #
-import suspended_mantis as robot
+# import suspended_mantis as robot
+import standing_mantis as robot
 # import suspended_quadruped as robot
 # import wheeled_manip as robot
 
@@ -27,7 +28,7 @@ data = MjData(model)
 
 mj_resetDataKeyframe(model, data, robot.key_frame_id)
 ctrl: np.array = np.zeros(2 * robot.nu)
-ctrl[: robot.nu] = data.qpos.copy()
+ctrl[: robot.nu] = data.qpos[robot.nq0 :].copy()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(
