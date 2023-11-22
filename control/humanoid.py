@@ -226,9 +226,7 @@ def setupQPSparseFullFullJacTwoArms(
     M2,
     h1,
     h2,
-    Jc,
     jacs,
-    ee_ids,
     vmapu,
     weights,
     des_acc,
@@ -243,6 +241,7 @@ def setupQPSparseFullFullJacTwoArms(
     ntau = nu
     # nv = M1.shape[1]
     nv = nu + nv1
+    Jc = jacs["contacts"]["t"]
     nc = Jc.shape[0]
     nforces = 3 * ncontacts
     # Assume arrangement

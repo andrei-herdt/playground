@@ -377,13 +377,19 @@ def get_dynamics(
     return dyn
 
 
-def create_jacobians_dict(shape, robot) -> Dict[str, Dict[str, Any]]:
+def create_jacobians_dict(robot) -> Dict[str, Dict[str, Any]]:
+    shape = (3, robot.nv)
     jacobians = {}
     # end effector jacobians
     for body_name in robot.get_end_effector_names():
         jacobians[body_name] = {"t": np.zeros(shape), "r": np.zeros(shape)}
     # com
     jacobians["com"] = {"t": np.zeros(shape)}
+
+    dim_forces = 3 * len(robot.get_list_of_contacts())
+    t = initialize_zero_array((dim_forces, robot.nv))
+    r = initialize_zero_array((dim_forces, robot.nv))
+    jacobians["contacts"] = {"t": t, "r": r}
 
     return jacobians
 
@@ -403,6 +409,13 @@ def fill_jacobians_dict(jacobians: Dict[str, Dict[str, Any]], model, data, robot
     mujoco.mj_jacSubtreeCom(
         model, data, jacobians["com"]["t"], model.body(robot.root_name).id
     )
+
+    contacts = robot.get_list_of_contacts()
+    for idx, name in enumerate(contacts):
+        id: int = model.site(name).id
+        Jt = jacobians["contacts"]["t"][3 * idx : 3 * (idx + 1), :]
+        Jr = jacobians["contacts"]["r"][3 * idx : 3 * (idx + 1), :]
+        mujoco.mj_jacSite(model, data, Jt, Jr, id)
 
 
 def create_figure():

@@ -26,8 +26,8 @@ from proxsuite import proxqp
 from typing import List
 
 # import wheeled_slides_manip as robot
-# import quadruped as robot
-import mantis as robot
+import quadruped as robot
+# import standing_mantis_torque as robot
 
 # import wheeled_manip as robot
 # import robotis_op3 as robot
@@ -66,14 +66,7 @@ qpmaptau: List[int] = [*range(0, nu)]
 mj_kinematics(model, data)
 mj_comPos(model, data)
 
-# Jacobians
-Jc = initialize_zero_array((3 * ncontacts, nv))
-
 M = initialize_zero_array((nv, nv))
-
-# Initialize task matrices
-# TODO: remove
-A1, A2, A4 = (initialize_zero_array((3, nu)) for _ in range(3))
 
 weights = tf.create_weights(nv1, nu, ncontacts, robot.root_name)
 ee_names = robot.get_end_effector_names()
@@ -93,14 +86,15 @@ gains = tf.create_gains_dict()
 # children.append(MoveNode(positions[0]))
 # sequence_node = SequenceNode(children)
 
+jacs = create_jacobians_dict(robot)
 
-# Move to fill_jacobians_dict
-# TODO: Check
-for idx, name in enumerate(contacts):
-    id: int = model.site(name).id
-    Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
-    mj_jacSite(model, data, Cflt, Cflr, id)
-    Jc[3 * idx : 3 * (idx + 1), :] = Cflt
+# # Move to fill_jacobians_dict
+# # TODO: Check
+# for idx, name in enumerate(contacts):
+#     id: int = model.site(name).id
+#     Cflt, Cflr = (initialize_zero_array((3, nv)) for _ in range(2))
+#     mj_jacSite(model, data, Cflt, Cflr, id)
+#     jacs["contacts"][3 * idx : 3 * (idx + 1), :] = Cflt
 
 mj_fullM(model, M, data.qM)
 
@@ -113,10 +107,6 @@ nineq = 3 * ncontacts
 qp = proxqp.sparse.QP(nvar, qpnv + 3 * ncontacts, nineq)
 qp.settings.compute_timings = True
 
-# TODO: Remove
-Jebt, Jebr, Jebt_left, Jebr_left = (initialize_zero_array((3, nv)) for _ in range(4))
-
-jacs = create_jacobians_dict((3, nv), robot)
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(
@@ -145,9 +135,7 @@ with mujoco.viewer.launch_passive(
             dyn["M2full"],
             dyn["h1full"],
             dyn["h2full"],
-            Jc,
             jacs,
-            ee_ids,
             vmapu,
             weights,
             des_acc,
@@ -164,7 +152,6 @@ with mujoco.viewer.launch_passive(
         forces = qp.results.x[qpmapf]
         ddq = qp.results.x[qpmapq]
 
-        # __import__("pdb").set_trace()
         data.ctrl[: len(tau_d)] = tau_d
         # data.ctrl[len(tau_d)] = ref["ee_suck"]
 
