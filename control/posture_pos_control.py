@@ -26,7 +26,8 @@ model = MjModel.from_xml_path(robot.xml_model_path)
 data = MjData(model)
 
 mj_resetDataKeyframe(model, data, robot.key_frame_id)
-ctrl = data.qpos.copy()
+ctrl: np.array = np.zeros(2 * robot.nu)
+ctrl[: robot.nu] = data.qpos.copy()
 
 sim_start = time.time()
 with mujoco.viewer.launch_passive(
