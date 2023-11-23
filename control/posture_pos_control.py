@@ -10,16 +10,11 @@ from mujoco import (
 )
 import numpy as np
 from behaviors import MoveNode, SuckNode, SequenceNode, TouchNode
-from proxsuite import proxqp
-from typing import List
 
-# import wheeled_slides_manip as robot
-#
-# import suspended_mantis as robot
-import standing_mantis as robot
+import suspended_mantis as robot
+# import standing_mantis as robot
 # import suspended_quadruped as robot
 # import wheeled_manip as robot
-
 
 np.set_printoptions(precision=3, suppress=True, linewidth=100)
 

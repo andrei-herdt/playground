@@ -131,9 +131,9 @@ with mujoco.viewer.launch_passive(
             vmapu,
             weights,
             des_acc,
-            nv1,#TODO: remove me
-            nu,#TODO: remove me
-            ncontacts,#TODO: remove me
+            nv1,  # TODO: remove me
+            nu,  # TODO: remove me
+            ncontacts,  # TODO: remove me
             qp,
             qpp,
             robot,

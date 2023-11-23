@@ -26,7 +26,6 @@ class MoveNode(BehaviorNode):
         self.pos_des = pos_des.copy()
 
     def execute(self, state: Dict, ref: Dict):
-        __import__("pdb").set_trace()
         pos: np.ndarray = state["ee"]["p"]
         if self._pre_condition(state, ref):
             self._execute(state, ref)
@@ -40,6 +39,55 @@ class MoveNode(BehaviorNode):
     def _post_condition(self, state: Dict, ref: Dict):
         pos: np.ndarray = state["ee"]["p"]
         dist = np.linalg.norm(self.pos_des - pos)
+        if dist < 0.015:
+            return True
+        else:
+            return False
+
+
+class TrajectoryNode(BehaviorNode):
+    def __init__(
+        self,
+        p0: np.ndarray,
+        p1: np.ndarray,
+        v0: np.ndarray,
+        v1: np.ndarray,
+        t0: float,
+        t1: float,
+        key: str,
+    ):
+        super().__init__()
+        self.p1 = p1
+        self.a = 2 * p0 - 2 * p1 + v0 + v1
+        self.b = -3 * p0 + 3 * p1 - 2 * v0 - v1
+        self.c = v0
+        self.d = p0
+        self.t0 = t0
+        self.t1 = t1
+        self.ee = key
+
+    def execute(self, state: Dict, ref: Dict):
+        # Add time to state
+        if self._pre_condition(state, ref):
+            self._execute(state, ref)
+            return self._post_condition(state, ref)
+        else:
+            return False
+
+    def _execute(self, state: Dict, ref: Dict):
+        t: float = state["time"]
+        if t < self.t0 or t > self.t1:
+            raise ValueError(f"Input must be between {self.t0} and {self.t1}")
+        trel = (t - self.t0) / (self.t1 - self.t0)
+
+        p = self.a * trel**3 + self.b * trel**2 + self.c * trel + self.d
+        dp = 3 * self.a * trel**2 + 2 * self.b * trel + self.c
+        ref[self.ee]["p"] = p
+        ref[self.ee]["dp"] = dp
+
+    def _post_condition(self, state: Dict, ref: Dict):
+        p: np.ndarray = state[self.ee]["p"]
+        dist = np.linalg.norm(self.p1 - p)
         if dist < 0.015:
             return True
         else:
