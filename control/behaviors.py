@@ -54,7 +54,7 @@ class TrajectoryNode(BehaviorNode):
         v1: np.ndarray,
         t0: float,
         t1: float,
-        key: str,
+        keys: List[str],
     ):
         super().__init__()
         self.p1 = p1
@@ -64,7 +64,7 @@ class TrajectoryNode(BehaviorNode):
         self.d = p0
         self.t0 = t0
         self.t1 = t1
-        self.ee = key
+        self.ee = keys
 
     def execute(self, state: Dict, ref: Dict):
         # Add time to state
@@ -76,19 +76,20 @@ class TrajectoryNode(BehaviorNode):
 
     def _execute(self, state: Dict, ref: Dict):
         t: float = state["time"]
-        if t < self.t0 or t > self.t1:
-            raise ValueError(f"Input must be between {self.t0} and {self.t1}")
+        if t < self.t0:
+            raise ValueError(f"Input must be higher {self.t0}")
+        if t > self.t1:
+            t = self.t1
         trel = (t - self.t0) / (self.t1 - self.t0)
 
         p = self.a * trel**3 + self.b * trel**2 + self.c * trel + self.d
         dp = 3 * self.a * trel**2 + 2 * self.b * trel + self.c
-        ref[self.ee]["p"] = p
-        ref[self.ee]["dp"] = dp
+        for ee in self.ee:
+            ref[ee]["p"] = p
+            ref[ee]["dp"] = dp
 
     def _post_condition(self, state: Dict, ref: Dict):
-        p: np.ndarray = state[self.ee]["p"]
-        dist = np.linalg.norm(self.p1 - p)
-        if dist < 0.015:
+        if state["time"] >= self.t1:
             return True
         else:
             return False

@@ -1,4 +1,4 @@
-from behaviors import *
+from behaviors import TrajectoryNode
 
 # Test of trajectory
 children = [
