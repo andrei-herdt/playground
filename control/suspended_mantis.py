@@ -42,11 +42,11 @@ qpnv = nv1 + nu
 
 # todo: make simple list attribute
 def get_list_of_contacts():
-    contacts: List[str] = ["frfoot", "flfoot", "rrfoot", "rlfoot"]
+    contacts: List[str] = []
     return contacts
 
 
 # todo: make simple list attribute
 def get_end_effector_names():
-    names: List[str] = [root_name]
+    names: List[str] = ["frfoot", "flfoot", "rrfoot", "rlfoot"]
     return names
