@@ -66,6 +66,21 @@ class TrajectoryNode(BehaviorNode):
         self.t1 = t1
         self.ee = keys
 
+        M: np.ndarray = np.array(
+            [
+                [t0**3, t0**2, t0, 1],
+                [3 * t0**2, 2 * t0, 1, 0],
+                [t1**3, t1**2, t1, 1],
+                [3 * t1**2, 2 * t1, 1, 0],
+            ],
+        )
+
+        self.coeffs = np.linalg.inv(M) @ np.array([p0, v0, p1, v1])
+        self.a = self.coeffs[0, :]
+        self.b = self.coeffs[1, :]
+        self.c = self.coeffs[2, :]
+        self.d = self.coeffs[3, :]
+
     def execute(self, state: Dict, ref: Dict):
         # Add time to state
         if self._pre_condition(state, ref):
@@ -80,7 +95,7 @@ class TrajectoryNode(BehaviorNode):
             raise ValueError(f"Input must be higher {self.t0}")
         if t > self.t1:
             t = self.t1
-        trel = (t - self.t0) / (self.t1 - self.t0)
+        trel = t
 
         p = self.a * trel**3 + self.b * trel**2 + self.c * trel + self.d
         dp = 3 * self.a * trel**2 + 2 * self.b * trel + self.c

@@ -25,7 +25,7 @@ model = MjModel.from_xml_path(robot.xml_model_path)
 data = MjData(model)
 
 mj_resetDataKeyframe(model, data, robot.key_frame_id)
-ctrl: np.array = np.zeros(2 * robot.nu)
+ctrl: np.ndarray = np.zeros(2 * robot.nu)
 ctrl[: robot.nu] = data.qpos[robot.nq0 :].copy()
 
 # ee reference
@@ -82,7 +82,7 @@ children = [
         3,
         4,
         ["flfoot", "rrfoot"],
-    )
+    ),
 ]
 sequence_node = SequenceNode(children)
 
@@ -117,7 +117,15 @@ with mujoco.viewer.launch_passive(
             data.ctrl[3 * id : 3 * (id + 1)] = ref[ee]["q"]
             data.ctrl[model.nv + 3 * id : model.nv + 3 * (id + 1)] = ref[ee]["dq"]
 
-        print(state["time"], " ", data.site("frfoot").xpos, " ", ref["frfoot"]["p"], " ", ref["frfoot"]["p_test"])
+        print(
+            state["time"],
+            " ",
+            data.site("frfoot").xpos,
+            " ",
+            ref["frfoot"]["p"],
+            " ",
+            ref["frfoot"]["p_test"],
+        )
 
         mj_step(model, data)
 
