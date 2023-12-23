@@ -49,8 +49,8 @@ renderer = mujoco.Renderer(env.model)
 
 make_networks_factory = functools.partial(
     ppo_networks.make_ppo_networks, 
-    policy_hidden_layer_sizes=(512, 256, 128),
-    value_hidden_layer_sizes=(512, 256, 128)
+    policy_hidden_layer_sizes=(128, 64, 32),
+    value_hidden_layer_sizes=(128, 64, 32),
 )
 train_fn = functools.partial(
     ppo.train,
