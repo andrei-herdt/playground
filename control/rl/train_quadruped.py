@@ -51,6 +51,7 @@ make_networks_factory = functools.partial(
     ppo_networks.make_ppo_networks, 
     policy_hidden_layer_sizes=(128, 64, 32),
     value_hidden_layer_sizes=(128, 64, 32),
+    activation=jax.nn.elu
 )
 train_fn = functools.partial(
     ppo.train,
