@@ -10,7 +10,7 @@ activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
 num_envs = 4096
 max_contact_force = 350.
 num_observations = 48
-  episode_length_s = 20 # episode length in seconds
+episode_length_s = 20 # episode length in seconds
 class scales ( AnymalCRoughCfg.rewards.scales ):
     orientation = -5.0
     torques = -0.000025
