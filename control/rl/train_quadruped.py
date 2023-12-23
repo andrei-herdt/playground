@@ -62,7 +62,6 @@ train_fn = functools.partial(
     normalize_observations=True,
     action_repeat=1,
     unroll_length=20,
-    num_minibatches=8,
     gae_lambda=0.95,
     num_updates_per_batch=4,
     discounting=0.99,
