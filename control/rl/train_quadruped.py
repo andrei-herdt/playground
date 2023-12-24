@@ -4,12 +4,8 @@ import numpy as np
 
 from brax.envs.base import Env, State
 from brax.training.agents.ppo import train as ppo
-from brax.training.agents.ppo import networks as ppo_networks
 from brax.io import model
 from brax import envs
-from flax import struct
-from matplotlib import pyplot as plt
-import mediapy as media
 import mujoco
 
 from absl import logging
@@ -17,26 +13,7 @@ from absl import logging
 from environments import BarkourEnv, domain_randomize
 
 import mujoco
-from mujoco import mjx
-
-import jax
-from jax import numpy as jp
-from jax import config
-
-# config.update("jax_enable_x64", True)
-
-
-from typing import Any, Dict, Tuple, Union
-
-from brax.envs.base import Env, State
-from brax.base import Base, Motion, Transform
-from brax import math
-
-from etils import epath
-
-from ml_collections import config_dict
-
-import numpy as np
+import networks as nw
 
 
 logging.set_verbosity(logging.INFO)
@@ -51,12 +28,8 @@ renderer = mujoco.Renderer(env.model)
 
 # Train policy
 
-make_networks_factory = functools.partial(
-    ppo_networks.make_ppo_networks,
-    policy_hidden_layer_sizes=(128, 64, 32),
-    value_hidden_layer_sizes=(128, 64, 32),
-    activation=jax.nn.elu,
-)
+make_networks_factory = nw.get_isaac_network()
+
 train_fn = functools.partial(
     ppo.train,
     num_timesteps=60_000_000,

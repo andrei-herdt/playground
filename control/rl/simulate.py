@@ -17,6 +17,7 @@ import mujoco
 from mujoco import mj_step, mj_resetDataKeyframe, mjx
 import mujoco.viewer
 import time
+import networks as nw
 
 
 # load params.
@@ -24,9 +25,7 @@ model_path = "/workdir/mjx_brax_quadruped_policy"
 params = model.load_params(model_path)
 
 normalize = running_statistics.normalize
-make_networks_factory = functools.partial(
-    ppo_networks.make_ppo_networks, policy_hidden_layer_sizes=(128, 128, 128, 128)
-)
+make_networks_factory = nw.get_isaac_network()
 ppo_network = make_networks_factory(465, 12, preprocess_observations_fn=normalize)
 make_inference_fn = ppo_networks.make_inference_fn(ppo_network)
 inference_fn = make_inference_fn(params)
