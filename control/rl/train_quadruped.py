@@ -22,7 +22,9 @@ from mujoco import mjx
 import jax
 from jax import numpy as jp
 from jax import config
-config.update("jax_enable_x64", True)
+
+# config.update("jax_enable_x64", True)
+
 
 from typing import Any, Dict, Tuple, Union
 
@@ -50,17 +52,17 @@ renderer = mujoco.Renderer(env.model)
 # Train policy
 
 make_networks_factory = functools.partial(
-    ppo_networks.make_ppo_networks, 
+    ppo_networks.make_ppo_networks,
     policy_hidden_layer_sizes=(128, 64, 32),
     value_hidden_layer_sizes=(128, 64, 32),
-    activation=jax.nn.elu
+    activation=jax.nn.elu,
 )
 train_fn = functools.partial(
     ppo.train,
     num_timesteps=60_000_000,
     num_evals=3,
     reward_scaling=1,
-    episode_length=1000, #TODO: How many seconds is that? 20?
+    episode_length=1000,  # TODO: How many seconds is that? 20?
     normalize_observations=True,
     action_repeat=1,
     unroll_length=20,
@@ -70,9 +72,11 @@ train_fn = functools.partial(
     learning_rate=3e-4,
     entropy_cost=1e-2,
     num_envs=4096,
-    batch_size=65536,
+    # batch_size=1024,
+    batch_size=1024,
     # batch_size=4096*24,
-    num_minibatches=32768,
+    num_minibatches=32,
+    # num_minibatches=32768,
     network_factory=make_networks_factory,
     num_resets_per_eval=10,
     randomization_fn=domain_randomize,
