@@ -130,7 +130,7 @@ def get_config():
                         feet_air_time=2,
                         # Encourage no motion at zero command, L2 regularization
                         # |q - q_default|^2.
-                        stand_still=-0.5,
+                        stand_still=-0.0,
                         # Early termination penalty.
                         termination=-1.0,
                         # Penalizing foot slipping on the ground.
