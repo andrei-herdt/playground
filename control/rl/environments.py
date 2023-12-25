@@ -132,7 +132,7 @@ def get_config():
                         # |q - q_default|^2.
                         stand_still=-0.0,
                         # Early termination penalty.
-                        termination=-1.0,
+                        termination=-0.0,
                         # Penalizing foot slipping on the ground.
                         foot_slip=-0.1,
                     )
