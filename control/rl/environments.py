@@ -124,7 +124,7 @@ def get_config():
 
                         # Penalize the change in the action and encourage smooth
                         # actions. L2 regularization |action - last_action|^2
-                        action_rate=-0.1,
+                        action_rate=-0.01,
                         # Encourage long swing steps.  However, it does not
                         # encourage high clearances.
                         feet_air_time=2,
