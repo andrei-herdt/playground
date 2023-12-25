@@ -1,5 +1,4 @@
 from brax.io import model
-from brax.training.agents.ppo.networks import make_inference_fn
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.acme import running_statistics
 from brax import envs
@@ -8,8 +7,6 @@ from environments import BarkourEnv, State
 
 import jax
 from jax import numpy as jp
-
-import functools
 
 import numpy as np
 
@@ -43,8 +40,6 @@ inference_fn = make_inference_fn(params)
 jit_inference_fn = jax.jit(inference_fn)
 
 # visualize policy
-#
-#
 envs.register_environment("barkour", BarkourEnv)
 env_name = "barkour"
 eval_env = envs.get_environment(env_name)
@@ -70,8 +65,9 @@ images = [get_image(state, camera="track", env=eval_env)]
 
 # grab a trajectory
 n_steps = 500
-render_every = 1
 
+render_every = 1
+print("generate images")
 for i in range(n_steps):
     act_rng, rng = jax.random.split(rng)
     ctrl, _ = jit_inference_fn(state.obs, act_rng)
@@ -80,6 +76,6 @@ for i in range(n_steps):
     if i % render_every == 0:
         images.append(get_image(state, camera="track", env=eval_env))
 
-media.write_video(
-    images=images, path="/workdir/quadruped.mp4", fps=1.0 / eval_env.dt / render_every
-)
+print("write video")
+fps=1.0 / eval_env.dt / render_every
+media.write_video(images=images, path="/workdir/quadruped.mp4", fps=fps)
