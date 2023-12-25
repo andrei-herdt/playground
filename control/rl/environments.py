@@ -106,7 +106,7 @@ def get_config():
                         # Tracking rewards are computed using exp(-delta^2/sigma)
                         # sigma can be a hyperparameters to tune.
                         # Track the base x-y velocity (no z-velocity tracking.)
-                        tracking_lin_vel=1.5,
+                        tracking_lin_vel=1,
                         # Track the angular velocity along z-axis, i.e. yaw rate.
                         tracking_ang_vel=0.8,
                         # Below are regularization terms, we roughly divide the
@@ -121,6 +121,7 @@ def get_config():
                         # L2 regularization of joint torques, |tau|^2.
                         # torques=-0.0002,
                         torques=-0.002,
+
                         # Penalize the change in the action and encourage smooth
                         # actions. L2 regularization |action - last_action|^2
                         action_rate=-0.1,
