@@ -41,7 +41,7 @@ train_fn = functools.partial(
     discounting=0.99,
     learning_rate=3e-4,
     entropy_cost=1e-2,
-    num_envs=4096,
+    num_envs=1024,
     batch_size=1024,
     # batch_size=4096*24,
     num_minibatches=4,
@@ -83,5 +83,6 @@ print(f"time to train: {times[-1] - times[1]}")
 
 
 # save and reload params.
-model_path = "/tmp/mjx_brax_quadruped_policy"
+policy_id = ""
+model_path = "/workdir/mjx_brax_quadruped_policy" + policy_id
 model.save_params(model_path, params)
