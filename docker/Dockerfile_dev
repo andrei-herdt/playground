@@ -162,3 +162,8 @@ RUN pip install nvidia-cuda-cupti-cu11
 
 ENV MUJOCO_GL egl
 ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/targets/x86_64-linux/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 iptools \
+    && rm -rf /var/lib/apt/lists/*
+
