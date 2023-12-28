@@ -1,5 +1,7 @@
 TODO:
-- [ ] 
+- [ ] Examine individual episodes
+- [ ] Plot learning curve
+
 Flat terrain params
 ```python
 # PPO
@@ -17,5 +19,3 @@ class scales ( AnymalCRoughCfg.rewards.scales ):
     feet_air_time = 2.
 ```
 
-Questions:
-- [ ] What is entropy cost

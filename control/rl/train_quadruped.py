@@ -16,9 +16,6 @@ import mujoco
 import networks as nw
 
 
-logging.set_verbosity(logging.INFO)
-
-
 envs.register_environment("barkour", BarkourEnv)
 env_name = "barkour"
 env = envs.get_environment(env_name)
@@ -45,10 +42,9 @@ train_fn = functools.partial(
     learning_rate=3e-4,
     entropy_cost=1e-2,
     num_envs=4096,
-    # batch_size=1024,
     batch_size=1024,
     # batch_size=4096*24,
-    num_minibatches=32,
+    num_minibatches=4,
     # num_minibatches=32768,
     network_factory=make_networks_factory,
     num_resets_per_eval=10,
