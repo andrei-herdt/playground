@@ -19,3 +19,16 @@ class scales ( AnymalCRoughCfg.rewards.scales ):
     feet_air_time = 2.
 ```
 
+changenum=1
+num_minibatches = 4
+num_steps:  0 eval/episode_reward:  0.5760557 eval/episode_reward_std:  0.9477362
+num_steps:  30310400 eval/episode_reward:  1.806519 eval/episode_reward_std:  4.0989275
+num_steps:  60620800 eval/episode_reward:  8.016773 eval/episode_reward_std:  7.0157056
+time to jit: 0:00:48.443359 time to train: 0:16:33.615585
+
+changenum=1
+num_envs=1024,
+num_steps:  0 eval/episode_reward:  0.56519926 eval/episode_reward_std:  0.94614327
+num_steps:  30310400 eval/episode_reward:  8.624402 eval/episode_reward_std:  6.6967926
+num_steps:  60620800 eval/episode_reward:  11.163882 eval/episode_reward_std:  6.147504
+time to jit: 0:00:46.034939 time to train: 0:25:47.985451
