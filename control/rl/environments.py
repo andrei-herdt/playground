@@ -126,7 +126,7 @@ def get_config():
                         action_rate=-0.01,
                         # Encourage long swing steps.  However, it does not
                         # encourage high clearances.
-                        feet_air_time=2,
+                        feet_air_time=5,
                         # Encourage no motion at zero command, L2 regularization
                         # |q - q_default|^2.
                         stand_still=-0.0,
