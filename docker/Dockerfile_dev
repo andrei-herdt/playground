@@ -163,7 +163,13 @@ RUN pip install nvidia-cuda-cupti-cu11
 ENV MUJOCO_GL egl
 ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/targets/x86_64-linux/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 
+# Network tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    iproute2 iptools \
+    iproute2 iputils-ping curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Lazygit
+RUN LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+&& curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" \
+&& tar xf lazygit.tar.gz lazygit \
+&& sudo install lazygit /usr/local/bin
