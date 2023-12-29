@@ -32,3 +32,9 @@ num_steps:  0 eval/episode_reward:  0.56519926 eval/episode_reward_std:  0.94614
 num_steps:  30310400 eval/episode_reward:  8.624402 eval/episode_reward_std:  6.6967926
 num_steps:  60620800 eval/episode_reward:  11.163882 eval/episode_reward_std:  6.147504
 time to jit: 0:00:46.034939 time to train: 0:25:47.985451
+
+ff9ffb95f64a821fc80553d6aa9e756ca97ce7db
+num_steps:  0 eval/episode_reward:  0.5935141 eval/episode_reward_std:  1.0470779
+num_steps:  32768000 eval/episode_reward:  7.8386593 eval/episode_reward_std:  5.9317703
+num_steps:  65536000 eval/episode_reward:  9.442217 eval/episode_reward_std:  5.8058133
+time to jit: 0:00:47.062260 time to train: 0:27:53.307440
