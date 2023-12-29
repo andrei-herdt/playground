@@ -2,22 +2,6 @@ TODO:
 - [ ] Examine individual episodes
 - [ ] Plot learning curve
 
-Flat terrain params
-```python
-# PPO
-actor_hidden_dims = [128, 64, 32]
-critic_hidden_dims = [128, 64, 32]
-activation = 'elu' # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-
-num_envs = 4096
-max_contact_force = 350.
-num_observations = 48
-episode_length_s = 20 # episode length in seconds
-class scales ( AnymalCRoughCfg.rewards.scales ):
-    orientation = -5.0
-    torques = -0.000025
-    feet_air_time = 2.
-```
 
 changenum=1
 num_minibatches = 4
@@ -34,7 +18,17 @@ num_steps:  60620800 eval/episode_reward:  11.163882 eval/episode_reward_std:  6
 time to jit: 0:00:46.034939 time to train: 0:25:47.985451
 
 ff9ffb95f64a821fc80553d6aa9e756ca97ce7db
+increase batch_size
 num_steps:  0 eval/episode_reward:  0.5935141 eval/episode_reward_std:  1.0470779
 num_steps:  32768000 eval/episode_reward:  7.8386593 eval/episode_reward_std:  5.9317703
 num_steps:  65536000 eval/episode_reward:  9.442217 eval/episode_reward_std:  5.8058133
 time to jit: 0:00:47.062260 time to train: 0:27:53.307440
+
+
+d200d204
+![](data/d200d204.mp4)
+decrease batch_size, increase torque penalty
+num_steps:  0 eval/episode_reward:  0.587013 eval/episode_reward_std:  1.0336502
+num_steps:  30310400 eval/episode_reward:  6.013794 eval/episode_reward_std:  7.0553393
+num_steps:  60620800 eval/episode_reward:  9.640033 eval/episode_reward_std:  9.364621
+time to jit: 0:00:46.774209 time to train: 0:25:50.067106
