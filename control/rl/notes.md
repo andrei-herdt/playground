@@ -26,7 +26,7 @@ time to jit: 0:00:47.062260 time to train: 0:27:53.307440
 
 
 d200d204
-![](data/d200d204.mp4)
+![](videos/d200d204.gif)
 decrease batch_size, increase torque penalty
 num_steps:  0 eval/episode_reward:  0.587013 eval/episode_reward_std:  1.0336502
 num_steps:  30310400 eval/episode_reward:  6.013794 eval/episode_reward_std:  7.0553393
