@@ -16,6 +16,13 @@ from mujoco import mjx
 import mediapy as media
 import networks as nw
 
+import argparse
+import sys
+
+parser = argparse.ArgumentParser(description="Generate video from policy")
+parser.add_argument("--file", "-f", type=str, help="Path to the file", required=True)
+args = parser.parse_args()
+
 
 def get_image(state: State, camera: str, env) -> np.ndarray:
     """Renders the environment state."""
@@ -34,6 +41,7 @@ params = model.load_params(model_path)
 
 normalize = running_statistics.normalize
 make_networks_factory = nw.get_isaac_network()
+# TODO: Get from env instead of hard-coding
 ppo_network = make_networks_factory(465, 12, preprocess_observations_fn=normalize)
 make_inference_fn = ppo_networks.make_inference_fn(ppo_network)
 inference_fn = make_inference_fn(params)
@@ -77,5 +85,5 @@ for i in range(n_steps):
         images.append(get_image(state, camera="track", env=eval_env))
 
 print("write video")
-fps=1.0 / eval_env.dt / render_every
-media.write_video(images=images, path="/workdir/quadruped.mp4", fps=fps)
+fps = 1.0 / eval_env.dt / render_every
+media.write_video(images=images, path=args.file, codec="gif", fps=fps)
