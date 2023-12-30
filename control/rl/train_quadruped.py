@@ -1,18 +1,12 @@
 from datetime import datetime
 import functools
-import numpy as np
 
-from brax.envs.base import Env, State
 from brax.training.agents.ppo import train as ppo
 from brax.io import model
 from brax import envs
 import mujoco
 
-from absl import logging
-
 from environments import BarkourEnv, domain_randomize
-
-import mujoco
 import networks as nw
 
 
@@ -20,11 +14,9 @@ envs.register_environment("barkour", BarkourEnv)
 env_name = "barkour"
 env = envs.get_environment(env_name)
 
-# re-instantiate the renderer
 renderer = mujoco.Renderer(env.model)
 
 # Train policy
-
 make_networks_factory = nw.get_isaac_network()
 
 train_fn = functools.partial(
@@ -46,7 +38,7 @@ train_fn = functools.partial(
     num_minibatches=4,
     network_factory=make_networks_factory,
     num_resets_per_eval=10,
-    randomization_fn=domain_randomize,
+    randomization_fn=None,
     seed=0,
 )
 
