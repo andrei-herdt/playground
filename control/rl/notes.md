@@ -1,6 +1,13 @@
 TODO:
 - [ ] Examine individual episodes
 - [ ] Plot learning curve
+- [ ] Remove randomization?
+- [ ] Understand:
+        jax.tree_util.treee_map
+        jax.lax.scan
+        training_step()
+        jax.pmap
+        jax.random.split
 
 
 changenum=1
@@ -60,3 +67,11 @@ num_steps:  0 eval/episode_reward:  0.60416865 eval/episode_reward_std:  1.03677
 num_steps:  30310400 eval/episode_reward:  9.292147 eval/episode_reward_std:  19.73348
 num_steps:  60620800 eval/episode_reward:  31.627762 eval/episode_reward_std:  28.004442
 time to jit: 0:01:28.993436 time to train: 0:27:16.385898
+
+de43f5f8
+remove randomisation
+num_steps:  0 eval/episode_reward:  0.20221572 eval/episode_reward_std:  0.32954594
+num_steps:  30310400 eval/episode_reward:  20.743465 eval/episode_reward_std:  28.053604
+num_steps:  60620800 eval/episode_reward:  21.331964 eval/episode_reward_std:  23.62141
+time to jit: 0:01:27.374001 time to train: 0:27:12.238757
+
