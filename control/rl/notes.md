@@ -53,3 +53,10 @@ num_steps:  0 eval/episode_reward:  0.60052776 eval/episode_reward_std:  1.04430
 num_steps:  30310400 eval/episode_reward:  0.014213366 eval/episode_reward_std:  0.013499956
 num_steps:  60620800 eval/episode_reward:  0.017713964 eval/episode_reward_std:  0.020368503
 time to jit: 0:01:29.584691 time to train: 0:27:17.806234
+
+42ee1b36
+decrease torque penalty
+num_steps:  0 eval/episode_reward:  0.60416865 eval/episode_reward_std:  1.0367799
+num_steps:  30310400 eval/episode_reward:  9.292147 eval/episode_reward_std:  19.73348
+num_steps:  60620800 eval/episode_reward:  31.627762 eval/episode_reward_std:  28.004442
+time to jit: 0:01:28.993436 time to train: 0:27:16.385898
