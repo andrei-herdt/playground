@@ -156,7 +156,7 @@ class BarkourEnv(MjxEnv):
 
     def __init__(
         self,
-        obs_noise: float = 0.05,
+        obs_noise: float = 0.0,
         action_scale: float = 0.3,
         **kwargs,
     ):
