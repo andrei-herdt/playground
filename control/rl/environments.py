@@ -123,7 +123,7 @@ def get_config():
                         torques=-0.0000025,
                         # Penalize the change in the action and encourage smooth
                         # actions. L2 regularization |action - last_action|^2
-                        action_rate=-0.01,
+                        action_rate=-0.05,
                         # Encourage long swing steps.  However, it does not
                         # encourage high clearances.
                         feet_air_time=5,
