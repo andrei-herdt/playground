@@ -157,7 +157,7 @@ class BarkourEnv(MjxEnv):
     def __init__(
         self,
         obs_noise: float = 0.0,
-        action_scale: float = 0.3,
+        action_scale: float = 1.0,
         **kwargs,
     ):
         path = epath.Path(epath.resource_path("mujoco")) / (
