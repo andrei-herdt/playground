@@ -196,6 +196,9 @@ class BarkourEnv(MjxEnv):
         self.lowers = self._default_ap_pose - jp.array([0.2, 0.8, 0.8] * 4)
         self.uppers = self._default_ap_pose + jp.array([0.2, 0.8, 0.8] * 4)
 
+        self.dim_obs = 465
+
+
     def sample_command(self, rng: jax.Array) -> jax.Array:
         lin_vel_x = [-0.6, 1.0]  # min max [m/s]
         lin_vel_y = [-0.8, 0.8]  # min max [m/s]
@@ -247,7 +250,7 @@ class BarkourEnv(MjxEnv):
         }
 
         x, xd = self._pos_vel(data)
-        obs = self._get_obs(data.qpos, x, xd, state_info)
+        obs = self._get_obs(data.qpos, data.qvel, x, xd, state_info)
         reward, done = jp.zeros(2)
         metrics = {"total_dist": 0.0}
         for k in state_info["reward_tuple"]:
@@ -505,6 +508,384 @@ class BarkourEnv(MjxEnv):
         _, foot_world_vel = self._get_feet_pos_vel(x, xd)
         # Penalize large feet velocity for feet that are in contact with the ground.
         return jp.sum(jp.square(foot_world_vel[:, :2]) * contact_filt.reshape((-1, 1)))
+
+
+class BarkourEnvHutter(MjxEnv):
+    """Environment for training the barkour quadruped joystick policy in MJX."""
+
+    def __init__(
+        self,
+        obs_noise: float = 0.0,
+        action_scale: float = 1.0,
+        **kwargs,
+    ):
+        path = epath.Path(epath.resource_path("mujoco")) / (
+            "mjx/benchmark/model/barkour_v0/assets"
+        )
+        mj_model = mujoco.MjModel.from_xml_path(
+            (path / "barkour_v0_mjx.xml").as_posix()
+        )
+        mj_model.opt.solver = mujoco.mjtSolver.mjSOL_CG
+        mj_model.opt.iterations = 4
+        mj_model.opt.ls_iterations = 6
+
+        physics_steps_per_control_step = 10
+        kwargs["physics_steps_per_control_step"] = kwargs.get(
+            "physics_steps_per_control_step", physics_steps_per_control_step
+        )
+        super().__init__(mj_model=mj_model, **kwargs)
+
+        self.torso_idx = 1
+        self._action_scale = action_scale
+        self._obs_noise = obs_noise
+        self._reset_horizon = 500
+        self._feet_index = jp.array([3, 6, 9, 12])
+        # local positions for each foot
+        self._feet_pos = jp.array(
+            [
+                [-0.191284, -0.0191638, 0.013],
+                [-0.191284, -0.0191638, -0.013],
+                [-0.191284, -0.0191638, 0.013],
+                [-0.191284, -0.0191638, -0.013],
+            ]
+        )
+        self._init_q = mj_model.keyframe("standing").qpos
+        self._default_ap_pose = mj_model.keyframe("standing").qpos[7:]
+        self.reward_config = get_config()
+        self.lowers = self._default_ap_pose - jp.array([0.2, 0.8, 0.8] * 4)
+        self.uppers = self._default_ap_pose + jp.array([0.2, 0.8, 0.8] * 4)
+
+        self.xd_lin_scale = 2.0
+        self.xd_ang_scale = 0.25 
+        self.cmd_scales = jp.array([2.0, 2.0, 0.25])
+        self.qpos_scale = 1
+        self.qvel_scale = 0.05
+
+        self.dim_obs = 48
+
+    def sample_command(self, rng: jax.Array) -> jax.Array:
+        lin_vel_x = [-0.6, 1.0]  # min max [m/s]
+        lin_vel_y = [-0.8, 0.8]  # min max [m/s]
+        ang_vel_yaw = [-0.7, 0.7]  # min max [rad/s]
+
+        _, key1, key2, key3 = jax.random.split(rng, 4)
+        lin_vel_x = jax.random.uniform(
+            key1, (1,), minval=lin_vel_x[0], maxval=lin_vel_x[1]
+        )
+        lin_vel_y = jax.random.uniform(
+            key2, (1,), minval=lin_vel_y[0], maxval=lin_vel_y[1]
+        )
+        ang_vel_yaw = jax.random.uniform(
+            key3, (1,), minval=ang_vel_yaw[0], maxval=ang_vel_yaw[1]
+        )
+        new_cmd = jp.array([lin_vel_x[0], lin_vel_y[0], ang_vel_yaw[0]])
+        return new_cmd
+
+    def reset(self, rng: jax.Array) -> State:
+        rng, key = jax.random.split(rng)
+
+        qpos = jp.array(self._init_q)
+        qvel = jp.zeros(self.model.nv)
+        new_cmd = self.sample_command(key)
+        data = self.pipeline_init(qpos, qvel)
+
+        state_info = {
+            "rng": rng,
+            "last_act": jp.zeros(12),
+            "last_vel": jp.zeros(12),
+            "last_contact_buffer": jp.zeros((20, 4), dtype=bool),
+            "command": new_cmd,
+            "last_contact": jp.zeros(4, dtype=bool),
+            "feet_air_time": jp.zeros(4),
+            "obs_history": jp.zeros(15 * 31),
+            "reward_tuple": {
+                "tracking_lin_vel": 0.0,
+                "tracking_ang_vel": 0.0,
+                "lin_vel_z": 0.0,
+                "ang_vel_xy": 0.0,
+                "orientation": 0.0,
+                "torque": 0.0,
+                "action_rate": 0.0,
+                "stand_still": 0.0,
+                "feet_air_time": 0.0,
+                "foot_slip": 0.0,
+            },
+            "step": 0,
+        }
+
+        x, xd = self._pos_vel(data)
+        obs = self._get_obs(data.qpos, data.qvel, x, xd, state_info)
+        reward, done = jp.zeros(2)
+        metrics = {"total_dist": 0.0}
+        for k in state_info["reward_tuple"]:
+            metrics[k] = state_info["reward_tuple"][k]
+        state = State(data, obs, reward, done, metrics, state_info)
+        return state
+
+    def step(self, state: State, action: jax.Array) -> State:
+        rng, rng_noise, cmd_rng = jax.random.split(state.info["rng"], 3)
+
+        # physics step
+        cur_action = jp.array(action)
+        action = action[:12] * self._action_scale
+        motor_targets = jp.clip(
+            action + self._default_ap_pose, self.lowers, self.uppers
+        )
+        data = self.pipeline_step(state.pipeline_state, motor_targets)
+
+        # observation data
+        x, xd = self._pos_vel(data)
+        obs = self._get_obs(data.qpos, data.qvel, x, xd, state.info)
+        obs_noise = self._obs_noise * jax.random.uniform(
+            rng_noise, obs.shape, minval=-1, maxval=1
+        )
+        qpos, qvel = data.qpos, data.qvel
+        joint_angles = qpos[7:]
+        joint_vel = qvel[6:]
+
+        # foot contact data based on z-position
+        foot_contact = 0.017 - self._get_feet_pos_vel(x, xd)[0][:, 2]
+        contact = foot_contact > -1e-3  # a mm or less off the floor
+        contact_filt_mm = jp.logical_or(contact, state.info["last_contact"])
+        contact_filt_cm = jp.logical_or(
+            foot_contact > -1e-2, state.info["last_contact"]
+        )
+        first_contact = (state.info["feet_air_time"] > 0) * (contact_filt_mm)
+        state.info["feet_air_time"] += self.dt
+
+        # reward
+        reward_tuple = {
+            "tracking_lin_vel": (
+                self._reward_tracking_lin_vel(state.info["command"], x, xd)
+                * self.reward_config.rewards.scales.tracking_lin_vel
+            ),
+            "tracking_ang_vel": (
+                self._reward_tracking_ang_vel(state.info["command"], x, xd)
+                * self.reward_config.rewards.scales.tracking_ang_vel
+            ),
+            "lin_vel_z": (
+                self._reward_lin_vel_z(xd) * self.reward_config.rewards.scales.lin_vel_z
+            ),
+            "ang_vel_xy": (
+                self._reward_ang_vel_xy(xd)
+                * self.reward_config.rewards.scales.ang_vel_xy
+            ),
+            "orientation": (
+                self._reward_orientation(x)
+                * self.reward_config.rewards.scales.orientation
+            ),
+            "torque": (
+                self._reward_torques(data.qfrc_actuator)
+                * self.reward_config.rewards.scales.torques
+            ),
+            "action_rate": (
+                self._reward_action_rate(cur_action, state.info["last_act"])
+                * self.reward_config.rewards.scales.action_rate
+            ),
+            "stand_still": (
+                self._reward_stand_still(
+                    state.info["command"], joint_angles, self._default_ap_pose
+                )
+                * self.reward_config.rewards.scales.stand_still
+            ),
+            "feet_air_time": (
+                self._reward_feet_air_time(
+                    state.info["feet_air_time"],
+                    first_contact,
+                    state.info["command"],
+                )
+                * self.reward_config.rewards.scales.feet_air_time
+            ),
+            "foot_slip": (
+                self._reward_foot_slip(x, xd, contact_filt_cm)
+                * self.reward_config.rewards.scales.foot_slip
+            ),
+        }
+        reward = sum(reward_tuple.values())
+        reward = jp.clip(reward * self.dt, 0.0, 10000.0)
+
+        # state management
+        state.info["last_act"] = cur_action
+        state.info["last_vel"] = joint_vel
+        state.info["feet_air_time"] *= ~contact_filt_mm
+        state.info["last_contact"] = contact
+        state.info["last_contact_buffer"] = jp.roll(
+            state.info["last_contact_buffer"], 1, axis=0
+        )
+        state.info["last_contact_buffer"] = (
+            state.info["last_contact_buffer"].at[0].set(contact)
+        )
+        state.info["reward_tuple"] = reward_tuple
+        state.info["step"] += 1
+        state.info.update(rng=rng)
+
+        # resetting logic if joint limits are reached or robot is falling
+        done = 0.0
+        up = jp.array([0.0, 0.0, 1.0])
+        done = jp.where(jp.dot(math.rotate(up, x.rot[0]), up) < 0, 1.0, done)
+        done = jp.where(
+            jp.logical_or(
+                jp.any(joint_angles < 0.98 * self.lowers),
+                jp.any(joint_angles > 0.98 * self.uppers),
+            ),
+            1.0,
+            done,
+        )
+        done = jp.where(x.pos[self.torso_idx, 2] < 0.18, 1.0, done)
+
+        # termination reward
+        reward += jp.where(
+            (done == 1.0) & (state.info["step"] < self._reset_horizon),
+            self.reward_config.rewards.scales.termination,
+            0.0,
+        )
+
+        # when done, sample new command if more than _reset_horizon timesteps
+        # achieved
+        state.info["command"] = jp.where(
+            (done == 1.0) & (state.info["step"] > self._reset_horizon),
+            self.sample_command(cmd_rng),
+            state.info["command"],
+        )
+        # reset the step counter when done
+        state.info["step"] = jp.where(
+            (done == 1.0) | (state.info["step"] > self._reset_horizon),
+            0,
+            state.info["step"],
+        )
+
+        # log total displacement as a proxy metric
+        state.metrics["total_dist"] = math.normalize(x.pos[self.torso_idx])[1]
+        for k in state.info["reward_tuple"].keys():
+            state.metrics[k] = state.info["reward_tuple"][k]
+
+        state = state.replace(
+            pipeline_state=data, obs=obs + obs_noise, reward=reward, done=done
+        )
+        return state
+
+    def _get_obs(
+        self, qpos: jax.Array, qvel: jax.Array, x: Transform, xd: Motion, state_info: Dict[str, Any]
+    ) -> jax.Array:
+        # Get observations:
+        # yaw_rate,  projected_gravity, command,  motor_angles, last_action
+
+        inv_base_orientation = math.quat_inv(x.rot[0])
+        local_rpyrate = math.rotate(xd.ang[0], inv_base_orientation)
+        cmd = state_info["command"]
+
+        # self.obs_buf = torch.cat((  self.base_lin_vel * self.obs_scales.lin_vel,
+        #                             self.base_ang_vel  * self.obs_scales.ang_vel,
+        #                             self.projected_gravity,
+        #                             self.commands[:, :3] * self.commands_scale,
+        #                             (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+        #                             self.dof_vel * self.obs_scales.dof_vel,
+        #                             self.actions
+        #                             ),dim=-1)
+        obs_list = []
+        # lin. base vel.
+        obs_list.append(xd.vel[0]*self.xd_lin_scale)
+        # ang. base vel.
+        obs_list.append(xd.ang[0]*self.xd_ang_scale)
+        # projected gravity
+        obs_list.append(math.rotate(jp.array([0.0, 0.0, -1.0]), inv_base_orientation))
+        # command
+        obs_list.append(cmd * self.cmd_scales)
+        # joint positions
+        angles = qpos[7:19]
+        obs_list.append((angles - self._default_ap_pose)*self.qpos_scale)
+        # joint speeds
+        speeds = qvel[6:18]
+        obs_list.append(speeds*self.qvel_scale)
+        # last action
+        obs_list.append(state_info["last_act"])
+
+        obs = jp.clip(jp.concatenate(obs_list), -100.0, 100.0)
+
+        # stack observations through time
+        single_obs_size = len(obs)
+        state_info["obs_history"] = jp.roll(state_info["obs_history"], single_obs_size)
+        state_info["obs_history"] = (
+            jp.array(state_info["obs_history"]).at[:single_obs_size].set(obs)
+        )
+        return obs
+
+    # ------------ reward functions----------------
+    def _reward_lin_vel_z(self, xd: Motion) -> jax.Array:
+        # Penalize z axis base linear velocity
+        return jp.square(xd.vel[0, 2])
+
+    def _reward_ang_vel_xy(self, xd: Motion) -> jax.Array:
+        # Penalize xy axes base angular velocity
+        return jp.sum(jp.square(xd.ang[0, :2]))
+
+    def _reward_orientation(self, x: Transform) -> jax.Array:
+        # Penalize non flat base orientation
+        up = jp.array([0.0, 0.0, 1.0])
+        rot_up = math.rotate(up, x.rot[0])
+        return jp.sum(jp.square(rot_up[:2]))
+
+    def _reward_torques(self, torques: jax.Array) -> jax.Array:
+        # Penalize torques
+        return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
+
+    def _reward_action_rate(self, act: jax.Array, last_act: jax.Array) -> jax.Array:
+        # Penalize changes in actions
+        return jp.sum(jp.square(act - last_act))
+
+    def _reward_tracking_lin_vel(
+        self, commands: jax.Array, x: Transform, xd: Motion
+    ) -> jax.Array:
+        # Tracking of linear velocity commands (xy axes)
+        local_vel = math.rotate(xd.vel[0], math.quat_inv(x.rot[0]))
+        lin_vel_error = jp.sum(jp.square(commands[:2] - local_vel[:2]))
+        lin_vel_reward = jp.exp(
+            -lin_vel_error / self.reward_config.rewards.tracking_sigma
+        )
+        return lin_vel_reward
+
+    def _reward_tracking_ang_vel(
+        self, commands: jax.Array, x: Transform, xd: Motion
+    ) -> jax.Array:
+        # Tracking of angular velocity commands (yaw)
+        base_ang_vel = math.rotate(xd.ang[0], math.quat_inv(x.rot[0]))
+        ang_vel_error = jp.square(commands[2] - base_ang_vel[2])
+        return jp.exp(-ang_vel_error / self.reward_config.rewards.tracking_sigma)
+
+    def _reward_feet_air_time(
+        self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
+    ) -> jax.Array:
+        # Reward air time.
+        rew_air_time = jp.sum((air_time - 0.1) * first_contact)
+        rew_air_time *= (
+            math.normalize(commands[:2])[1] > 0.05
+        )  # no reward for zero command
+        return rew_air_time
+
+    def _reward_stand_still(
+        self, commands: jax.Array, joint_angles: jax.Array, default_angles: jax.Array
+    ) -> jax.Array:
+        # Penalize motion at zero commands
+        return jp.sum(jp.abs(joint_angles - default_angles)) * (
+            math.normalize(commands[:2])[1] < 0.1
+        )
+
+    def _get_feet_pos_vel(
+        self, x: Transform, xd: Motion
+    ) -> Tuple[jax.Array, jax.Array]:
+        offset = Transform.create(pos=self._feet_pos)
+        pos = x.take(self._feet_index).vmap().do(offset).pos
+        vel = offset.vmap().do(xd.take(self._feet_index)).vel
+        return pos, vel
+
+    def _reward_foot_slip(
+        self, x: Transform, xd: Motion, contact_filt: jax.Array
+    ) -> jax.Array:
+        # Get feet velocities
+        _, foot_world_vel = self._get_feet_pos_vel(x, xd)
+        # Penalize large feet velocity for feet that are in contact with the ground.
+        return jp.sum(jp.square(foot_world_vel[:, :2]) * contact_filt.reshape((-1, 1)))
+
 
 
 def domain_randomize(sys, rng):

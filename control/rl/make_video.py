@@ -3,7 +3,7 @@ from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.acme import running_statistics
 from brax import envs
 
-from environments import BarkourEnv, State
+from environments import BarkourEnv, BarkourEnvHutter, State
 
 import jax
 from jax import numpy as jp
@@ -39,23 +39,26 @@ def get_image(state: State, camera: str, env) -> np.ndarray:
 model_path = "/workdir/mjx_brax_quadruped_policy"
 params = model.load_params(model_path)
 
+
+# Environment
+envs.register_environment("barkour", BarkourEnv)
+envs.register_environment("barkour_hutter", BarkourEnvHutter)
+env_name = "barkour_hutter"
+env = envs.get_environment(env_name)
+
+# Inference function
 normalize = running_statistics.normalize
 make_networks_factory = nw.get_isaac_network()
 # TODO: Get from env instead of hard-coding
-ppo_network = make_networks_factory(465, 12, preprocess_observations_fn=normalize)
+ppo_network = make_networks_factory(env.dim_obs, 12, preprocess_observations_fn=normalize)
 make_inference_fn = ppo_networks.make_inference_fn(ppo_network)
 inference_fn = make_inference_fn(params)
 jit_inference_fn = jax.jit(inference_fn)
 
-# visualize policy
-envs.register_environment("barkour", BarkourEnv)
-env_name = "barkour"
-eval_env = envs.get_environment(env_name)
+jit_reset = jax.jit(env.reset)
+jit_step = jax.jit(env.step)
 
-jit_reset = jax.jit(eval_env.reset)
-jit_step = jax.jit(eval_env.step)
-
-renderer = mujoco.Renderer(eval_env.model)
+renderer = mujoco.Renderer(env.model)
 
 # @markdown Commands **only used for Barkour Env**:
 x_vel = 1.0  # @param {type: "number"}
@@ -69,7 +72,7 @@ rng = jax.random.PRNGKey(0)
 state = jit_reset(rng)
 state.info["command"] = the_command
 rollout = [state]
-images = [get_image(state, camera="track", env=eval_env)]
+images = [get_image(state, camera="track", env=env)]
 
 # grab a trajectory
 n_steps = 500
@@ -82,8 +85,8 @@ for i in range(n_steps):
     state = jit_step(state, ctrl)
     rollout.append(state)
     if i % render_every == 0:
-        images.append(get_image(state, camera="track", env=eval_env))
+        images.append(get_image(state, camera="track", env=env))
 
 print("write video")
-fps = 1.0 / eval_env.dt / render_every
+fps = 1.0 / env.dt / render_every
 media.write_video(images=images, path=args.file, codec="gif", fps=fps)

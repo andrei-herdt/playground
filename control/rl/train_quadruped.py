@@ -6,12 +6,13 @@ from brax.io import model
 from brax import envs
 import mujoco
 
-from environments import BarkourEnv, domain_randomize
+from environments import BarkourEnv, BarkourEnvHutter, domain_randomize
 import networks as nw
 
 
 envs.register_environment("barkour", BarkourEnv)
-env_name = "barkour"
+envs.register_environment("barkour_hutter", BarkourEnvHutter)
+env_name = "barkour_hutter"
 env = envs.get_environment(env_name)
 
 renderer = mujoco.Renderer(env.model)
