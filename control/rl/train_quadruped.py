@@ -9,6 +9,10 @@ import mujoco
 from environments import BarkourEnv, BarkourEnvHutter, domain_randomize
 import networks as nw
 
+from typing import Dict, List, Any
+
+import pandas as pd
+
 
 envs.register_environment("barkour", BarkourEnv)
 envs.register_environment("barkour_hutter", BarkourEnvHutter)
@@ -44,21 +48,21 @@ train_fn = functools.partial(
 )
 
 
-x_data = []
-y_data = []
-ydataerr = []
-times = [datetime.now()]
-max_y, min_y = 30, 0
+data: Dict[str, List[Any]] = {
+    "times": [],
+    "num_steps": [],
+    "reward": [],
+    "reward_std": [],
+}
+start = datetime.now()
 
 
 def progress(num_steps, metrics):
-    times.append(datetime.now())
-    x_data.append(num_steps)
-    y_data.append(metrics["eval/episode_reward"])
-    ydataerr.append(metrics["eval/episode_reward_std"])
-    print("num_steps: ", num_steps)
-    print("eval/episode_reward: ", metrics["eval/episode_reward"])
-    print("eval/episode_reward_std: ", metrics["eval/episode_reward_std"])
+    global data
+    data["times"].append(datetime.now())
+    data["num_steps"].append(num_steps)
+    data["reward"].append(metrics["eval/episode_reward"])
+    data["reward_std"].append(metrics["eval/episode_reward_std"])
 
 
 # Reset environments since internals may be overwritten by tracers from the
@@ -69,8 +73,10 @@ make_inference_fn, params, _ = train_fn(
     environment=env, progress_fn=progress, eval_env=eval_env
 )
 
-print(f"time to jit: {times[1] - times[0]}")
-print(f"time to train: {times[-1] - times[1]}")
+df = pd.DataFrame.from_dict(data)
+print(df.to_markdown(index=False))
+print(f"time to jit: {df['times'][1] - start}")
+print(f"time to train: {df['times'][-1] - df['times'][1]}")
 
 
 # save and reload params.
