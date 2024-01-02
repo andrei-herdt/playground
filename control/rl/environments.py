@@ -519,7 +519,7 @@ class BarkourEnvHutter(MjxEnv):
     def __init__(
         self,
         obs_noise: float = 0.0,
-        action_scale: float = 1.0,
+        action_scale: float = 0.5,
         **kwargs,
     ):
         path = epath.Path(epath.resource_path("mujoco")) / (
@@ -842,6 +842,10 @@ class BarkourEnvHutter(MjxEnv):
         # Penalize joint speeds
         # TODO: Remove sqrt
         return jp.sum(jp.square(qvel))
+
+    # def _reward_dof_acc(self):
+    #     # Penalize dof accelerations
+    #     return torch.sum(torch.square((self.last_dof_vel - self.dof_vel) / self.dt), dim=1)
 
     def _reward_torques(self, torques: jax.Array) -> jax.Array:
         # Penalize torques
