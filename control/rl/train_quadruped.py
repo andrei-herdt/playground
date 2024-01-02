@@ -38,8 +38,8 @@ train_fn = functools.partial(
     discounting=0.99,
     learning_rate=3e-4,
     entropy_cost=1e-2,
-    num_envs=1024,
-    batch_size=1024,
+    num_envs=512,
+    batch_size=32768,
     num_minibatches=4,
     network_factory=make_networks_factory,
     num_resets_per_eval=10,
@@ -48,21 +48,17 @@ train_fn = functools.partial(
 )
 
 
-data: Dict[str, List[Any]] = {
-    "times": [],
-    "num_steps": [],
-    "reward": [],
-    "reward_std": [],
-}
 start = datetime.now()
+data_df = pd.DataFrame()
 
 
 def progress(num_steps, metrics):
-    global data
-    data["times"].append(datetime.now())
-    data["num_steps"].append(num_steps)
-    data["reward"].append(metrics["eval/episode_reward"])
-    data["reward_std"].append(metrics["eval/episode_reward_std"])
+    global data_df
+
+    metrics["num_steps"] = num_steps
+    idx = data_df.index.size
+    data_df = pd.concat([data_df, pd.DataFrame(metrics, index=[idx])])
+    __import__("pdb").set_trace()
 
 
 # Reset environments since internals may be overwritten by tracers from the
@@ -73,13 +69,13 @@ make_inference_fn, params, _ = train_fn(
     environment=env, progress_fn=progress, eval_env=eval_env
 )
 
-df = pd.DataFrame.from_dict(data)
-print(df.to_markdown(index=False))
-print(f"time to jit: {df['times'][1] - start}")
-print(f"time to train: {df['times'][-1] - df['times'][1]}")
 
-
-# save and reload params.
+# save policy
 policy_id = ""
 model_path = "/workdir/mjx_brax_quadruped_policy" + policy_id
 model.save_params(model_path, params)
+
+__import__("pdb").set_trace()
+print(data_df.to_markdown(index=False))
+print(f"time to jit: {data_df['times'][1] - start}")
+print(f"time to train: {data_df['times'][-1] - data_df['times'][1]}")
