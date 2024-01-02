@@ -106,27 +106,27 @@ def get_config():
                         # Tracking rewards are computed using exp(-delta^2/sigma)
                         # sigma can be a hyperparameters to tune.
                         # Track the base x-y velocity (no z-velocity tracking.)
-                        tracking_lin_vel=5,
+                        tracking_lin_vel=1,
                         # Track the angular velocity along z-axis, i.e. yaw rate.
                         tracking_ang_vel=0.5,
                         # Below are regularization terms, we roughly divide the
                         # terms to base state regularizations, joint
                         # regularizations, and other behavior regularizations.
                         # Penalize the base velocity in z direction, L2 penalty.
-                        lin_vel_z=-2.0,
+                        lin_vel_z=-4.0,
                         # Penalize the base roll and pitch rate. L2 penalty.
                         ang_vel_xy=-0.05,
                         # Penalize non-zero roll and pitch angles. L2 penalty.
-                        orientation=-5.0,
+                        orientation=-0.0,
                         # L2 regularization of joint torques, |tau|^2.
                         # torques=-0.0002,
-                        torques=-0.0000025,
+                        torques=-0.00002,
                         # Penalize the change in the action and encourage smooth
                         # actions. L2 regularization |action - last_action|^2
-                        action_rate=-0.1,
+                        action_rate=-0.25,
                         # Encourage long swing steps.  However, it does not
                         # encourage high clearances.
-                        feet_air_time=5,
+                        feet_air_time=2,
                         # Encourage no motion at zero command, L2 regularization
                         # |q - q_default|^2.
                         stand_still=-0.0,
@@ -197,7 +197,6 @@ class BarkourEnv(MjxEnv):
         self.uppers = self._default_ap_pose + jp.array([0.2, 0.8, 0.8] * 4)
 
         self.dim_obs = 465
-
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
         lin_vel_x = [-0.6, 1.0]  # min max [m/s]
@@ -556,7 +555,7 @@ class BarkourEnvHutter(MjxEnv):
         self.uppers = self._default_ap_pose + jp.array([0.2, 0.8, 0.8] * 4)
 
         self.xd_lin_scale = 2.0
-        self.xd_ang_scale = 0.25 
+        self.xd_ang_scale = 0.25
         self.cmd_scales = jp.array([2.0, 2.0, 0.25])
         self.qpos_scale = 1
         self.qvel_scale = 0.05
@@ -765,7 +764,12 @@ class BarkourEnvHutter(MjxEnv):
         return state
 
     def _get_obs(
-        self, qpos: jax.Array, qvel: jax.Array, x: Transform, xd: Motion, state_info: Dict[str, Any]
+        self,
+        qpos: jax.Array,
+        qvel: jax.Array,
+        x: Transform,
+        xd: Motion,
+        state_info: Dict[str, Any],
     ) -> jax.Array:
         # Get observations:
         # yaw_rate,  projected_gravity, command,  motor_angles, last_action
@@ -784,19 +788,19 @@ class BarkourEnvHutter(MjxEnv):
         #                             ),dim=-1)
         obs_list = []
         # lin. base vel.
-        obs_list.append(xd.vel[0]*self.xd_lin_scale)
+        obs_list.append(xd.vel[0] * self.xd_lin_scale)
         # ang. base vel.
-        obs_list.append(xd.ang[0]*self.xd_ang_scale)
+        obs_list.append(xd.ang[0] * self.xd_ang_scale)
         # projected gravity
         obs_list.append(math.rotate(jp.array([0.0, 0.0, -1.0]), inv_base_orientation))
         # command
         obs_list.append(cmd * self.cmd_scales)
         # joint positions
         angles = qpos[7:19]
-        obs_list.append((angles - self._default_ap_pose)*self.qpos_scale)
+        obs_list.append((angles - self._default_ap_pose) * self.qpos_scale)
         # joint speeds
         speeds = qvel[6:18]
-        obs_list.append(speeds*self.qvel_scale)
+        obs_list.append(speeds * self.qvel_scale)
         # last action
         obs_list.append(state_info["last_act"])
 
@@ -885,7 +889,6 @@ class BarkourEnvHutter(MjxEnv):
         _, foot_world_vel = self._get_feet_pos_vel(x, xd)
         # Penalize large feet velocity for feet that are in contact with the ground.
         return jp.sum(jp.square(foot_world_vel[:, :2]) * contact_filt.reshape((-1, 1)))
-
 
 
 def domain_randomize(sys, rng):
