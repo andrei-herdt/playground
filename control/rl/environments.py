@@ -133,7 +133,7 @@ def get_config():
                         # Early termination penalty.
                         termination=-0.0,
                         # Penalizing foot slipping on the ground.
-                        foot_slip=-0.1,
+                        foot_slip=-0.0,
                     )
                 ),
                 # Tracking reward = exp(-error^2/sigma).
@@ -478,7 +478,8 @@ class BarkourEnv(MjxEnv):
         self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
     ) -> jax.Array:
         # Reward air time.
-        rew_air_time = jp.sum((air_time - 0.1) * first_contact)
+        nominal_air_time = 0.5
+        rew_air_time = jp.sum((air_time - nominal_air_time) * first_contact)
         rew_air_time *= (
             math.normalize(commands[:2])[1] > 0.05
         )  # no reward for zero command
