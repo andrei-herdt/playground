@@ -841,11 +841,11 @@ class BarkourEnvHutter(MjxEnv):
     def _reward_joint_motion(self, qvel: jax.Array) -> jax.Array:
         # Penalize joint speeds
         # TODO: Remove sqrt
-        return jp.sqrt(jp.sum(jp.square(qvel)))
+        return jp.sum(jp.square(qvel))
 
     def _reward_torques(self, torques: jax.Array) -> jax.Array:
         # Penalize torques
-        return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
+        return jp.sum(jp.square(torques))
 
     def _reward_action_rate(self, act: jax.Array, last_act: jax.Array) -> jax.Array:
         # Penalize changes in actions
