@@ -118,6 +118,8 @@ def get_config():
                         ang_vel_xy=-0.05,
                         # Penalize non-zero roll and pitch angles. L2 penalty.
                         orientation=-0.0,
+                        # L2 regularization of joint speeds, |qvel|^2.
+                        joint_motion=-0.001,
                         # L2 regularization of joint torques, |tau|^2.
                         # torques=-0.0002,
                         torques=-0.00002,
@@ -449,6 +451,7 @@ class BarkourEnv(MjxEnv):
 
     def _reward_torques(self, torques: jax.Array) -> jax.Array:
         # Penalize torques
+        # TODO: simplify this reward
         return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
 
     def _reward_action_rate(self, act: jax.Array, last_act: jax.Array) -> jax.Array:
@@ -604,6 +607,7 @@ class BarkourEnvHutter(MjxEnv):
                 "lin_vel_z": 0.0,
                 "ang_vel_xy": 0.0,
                 "orientation": 0.0,
+                "joint_motion": 0.0,
                 "torque": 0.0,
                 "action_rate": 0.0,
                 "stand_still": 0.0,
@@ -673,6 +677,10 @@ class BarkourEnvHutter(MjxEnv):
             "orientation": (
                 self._reward_orientation(x)
                 * self.reward_config.rewards.scales.orientation
+            ),
+            "joint_motion": (
+                self._reward_joint_motion(joint_vel)
+                * self.reward_config.rewards.scales.joint_motion
             ),
             "torque": (
                 self._reward_torques(data.qfrc_actuator)
@@ -830,6 +838,11 @@ class BarkourEnvHutter(MjxEnv):
         rot_up = math.rotate(up, x.rot[0])
         return jp.sum(jp.square(rot_up[:2]))
 
+    def _reward_joint_motion(self, qvel: jax.Array) -> jax.Array:
+        # Penalize joint speeds
+        # TODO: Remove sqrt
+        return jp.sqrt(jp.sum(jp.square(qvel)))
+
     def _reward_torques(self, torques: jax.Array) -> jax.Array:
         # Penalize torques
         return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
@@ -861,7 +874,8 @@ class BarkourEnvHutter(MjxEnv):
         self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
     ) -> jax.Array:
         # Reward air time.
-        rew_air_time = jp.sum((air_time - 0.1) * first_contact)
+        nominal_air_time = 0.5
+        rew_air_time = jp.sum((air_time - nominal_air_time) * first_contact)
         rew_air_time *= (
             math.normalize(commands[:2])[1] > 0.05
         )  # no reward for zero command
