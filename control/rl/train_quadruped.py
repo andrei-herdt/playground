@@ -9,8 +9,6 @@ import mujoco
 from environments import BarkourEnv, BarkourEnvHutter, domain_randomize
 import networks as nw
 
-from typing import Dict, List, Any
-
 import pandas as pd
 
 
@@ -56,9 +54,10 @@ def progress(num_steps, metrics):
     global data_df
 
     metrics["num_steps"] = num_steps
+    metrics["times"] = datetime.now()
     idx = data_df.index.size
     data_df = pd.concat([data_df, pd.DataFrame(metrics, index=[idx])])
-    __import__("pdb").set_trace()
+    print(data_df[["eval/episode_reward_std", "eval/episode_reward"]].to_markdown())
 
 
 # Reset environments since internals may be overwritten by tracers from the
@@ -75,7 +74,8 @@ policy_id = ""
 model_path = "/workdir/mjx_brax_quadruped_policy" + policy_id
 model.save_params(model_path, params)
 
-__import__("pdb").set_trace()
-print(data_df.to_markdown(index=False))
+f = open("/workdir/metrics.md", "w")
+f.write(data_df.to_markdown())
+f.close()
 print(f"time to jit: {data_df['times'][1] - start}")
 print(f"time to train: {data_df['times'][-1] - data_df['times'][1]}")
