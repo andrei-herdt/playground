@@ -125,7 +125,12 @@ if [ -f /usr/bin/nvidia-smi ]; then
 	fi
 fi
 if [ $SSH -eq 1 ]; then
-	GPUOPT=''
+    if [ -f /usr/bin/nvidia-smi ]; then
+		GPUOPT="--gpus all"
+		RUNTIME="--runtime=nvidia"
+    else
+        GPUOPT=''
+	fi
 fi
 
 if [ -d "${LOG_DIR}" ]; then
