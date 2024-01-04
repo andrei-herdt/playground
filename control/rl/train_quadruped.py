@@ -34,14 +34,14 @@ train_fn = functools.partial(
     gae_lambda=0.95,
     num_updates_per_batch=4,
     discounting=0.99,
-    learning_rate=3e-2,
+    learning_rate=3e-4,
     entropy_cost=1e-2,
     num_envs=512,
     batch_size=32768,
     num_minibatches=4,
     network_factory=make_networks_factory,
     num_resets_per_eval=10,
-    randomization_fn=None,
+    randomization_fn=domain_randomize,
     seed=0,
 )
 
