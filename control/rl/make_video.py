@@ -50,7 +50,9 @@ env = envs.get_environment(env_name)
 normalize = running_statistics.normalize
 make_networks_factory = nw.get_isaac_network()
 # TODO: Get from env instead of hard-coding
-ppo_network = make_networks_factory(env.dim_obs, 12, preprocess_observations_fn=normalize)
+ppo_network = make_networks_factory(
+    env.dim_obs, 12, preprocess_observations_fn=normalize
+)
 make_inference_fn = ppo_networks.make_inference_fn(ppo_network)
 inference_fn = make_inference_fn(params)
 jit_inference_fn = jax.jit(inference_fn)
