@@ -34,3 +34,7 @@ def print_url():
     web_url = transform_github_url(remote_url)
     commit_url = get_commit_url(commit_hash, web_url)
     print(commit_url)
+
+
+if __name__ == "__main__":
+    print_url()
