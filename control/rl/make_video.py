@@ -17,10 +17,21 @@ import mediapy as media
 import networks as nw
 
 import argparse
-import sys
+from utils.get_commit_url import get_current_commit_hash
 
 parser = argparse.ArgumentParser(description="Generate video from policy")
-parser.add_argument("--file", "-f", type=str, help="Path to the file", required=True)
+parser.add_argument(
+    "--path",
+    "-p",
+    type=str,
+    help="Path to the file",
+    required=False,
+    default="/workdir",
+)
+current_hash: str = get_current_commit_hash()
+parser.add_argument(
+    "--commit", "-c", type=str, help="Commit hash", required=False, default=current_hash
+)
 args = parser.parse_args()
 
 
@@ -91,4 +102,5 @@ for i in range(n_steps):
 
 print("write video")
 fps = 1.0 / env.dt / render_every
-media.write_video(images=images, path=args.file, codec="gif", fps=fps)
+file_path = args.path + "/video_" + args.commit + ".gif"
+media.write_video(images=images, path=file_path, codec="gif", fps=fps)
