@@ -13,6 +13,10 @@ def get_remote_url():
     return run_command("git remote get-url origin")
 
 
+def move_file(origin: str, dest: str):
+    return run_command("mv " + origin + " " + dest)
+
+
 def transform_github_url(remote_url):
     if remote_url.startswith("git@github.com:"):
         return remote_url.replace("git@github.com:", "https://github.com/").replace(

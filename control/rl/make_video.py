@@ -17,7 +17,7 @@ import mediapy as media
 import networks as nw
 
 import argparse
-from utils.get_commit_url import get_current_commit_hash
+from utils.get_commit_url import get_current_commit_hash, move_file
 
 parser = argparse.ArgumentParser(description="Generate video from policy")
 parser.add_argument(
@@ -102,5 +102,10 @@ for i in range(n_steps):
 
 print("write video")
 fps = 1.0 / env.dt / render_every
-file_path = args.path + "/video_" + args.commit + ".gif"
+file_path = args.path + "/videos/" + args.commit + ".gif"
 media.write_video(images=images, path=file_path, codec="gif", fps=fps)
+
+# Copy metrics to path
+orig = "/workdir/metrics.md"
+dest = args.path + "/data/" + args.commit + ".md"
+move_file(orig, dest)
