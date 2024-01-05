@@ -25,7 +25,7 @@ make_networks_factory = nw.get_isaac_network()
 train_fn = functools.partial(
     ppo.train,
     num_timesteps=60_000_000,
-    num_evals=6,
+    num_evals=3,
     reward_scaling=1,
     episode_length=2000,  # TODO: How many seconds is that? 20?
     normalize_observations=True,
