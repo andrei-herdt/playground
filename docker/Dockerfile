@@ -1,4 +1,5 @@
 ARG NCORE
+ARG BASE_IMAGE
 
 ARG BLD_PINOCCHIO_URL=https://github.com/stack-of-tasks/pinocchio
 ARG BLD_PINOCCHIO_VERSION=e7f00457b5928e2f9e0a4567da2c82b5abbdc93f
@@ -14,7 +15,7 @@ ARG BLD_TINYXML_URL=https://git.code.sf.net/p/tinyxml/git
 ARG BLD_BOOST_URL=https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
 ARG BLD_EIGENPY_URL=https://github.com/stack-of-tasks/eigenpy.git
 
-FROM BASE_IMAGE
+FROM ${BASE_IMAGE}
 # FROM ubuntu:22.04
 # FROM nvidia/opengl:1.0-glvnd-runtime-ubuntu22.04
 RUN echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/00-docker
